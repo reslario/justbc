@@ -1,3 +1,5 @@
+pub mod albums;
+
 pub trait Query: Sized {
     type Page;
     type Err;
