@@ -1,21 +1,11 @@
 use {
+    super::*,
     serde::Deserialize,
-    select::predicate::Name,
-    snafu::{Snafu, OptionExt, ResultExt},
-    crate::{
-        pages,
-        data::Query
-    }
+    snafu::{Snafu, OptionExt, ResultExt}
 };
 
-
-#[derive(Debug, Clone)]
-pub struct Album {
-    pub info: Info,
-    pub tracks: Vec<Track>
-}
-
 #[derive(Debug, Snafu)]
+#[snafu(visibility(pub(super)))]
 pub enum Error {
     #[snafu(display("album info not found"))]
     NoInfo,
@@ -25,21 +15,7 @@ pub enum Error {
     Serde { source: serde_json::Error, field: &'static str }
 }
 
-impl Query for Album {
-    type Page = pages::Album;
-    type Err = Error;
-
-    fn query(page: &Self::Page) -> Result<Self, Self::Err> {
-        page.find(Name("script"))
-            .filter_map(|script| script.first_child())
-            .filter_map(|script| script.as_text())
-            .find_map(album_data_str)
-            .context(NoInfo)
-            .and_then(parse_album_data)
-    }
-}
-
-fn album_data_str(script: &str) -> Option<&str> {
+pub (super) fn album_data_str(script: &str) -> Option<&str> {
     const VAR: &str = "var TralbumData = {";
 
     let start = script.find(VAR)?
@@ -51,7 +27,7 @@ fn album_data_str(script: &str) -> Option<&str> {
     script[start..][..end].into()
 }
 
-fn parse_album_data(string: &str) -> Result<Album, Error> {
+pub (super) fn parse_album_data(string: &str) -> Result<Album, Error> {
     Ok(Album {
         info: get_field("current", string)?,
         tracks: get_field("trackinfo", string)?
@@ -76,21 +52,6 @@ fn get_json(prop: &str) -> Option<&str> {
         .map(|comma| &json[..comma])
         .unwrap_or(json)
         .into()
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct Info {
-    pub title: String,
-    pub about: String,
-    pub credits: String,
-    pub release_date: Date
-}
-
-#[derive(Debug, Clone)]
-pub struct Date {
-    pub day: u8,
-    pub month: String,
-    pub year: u16
 }
 
 #[derive(Debug, Snafu)]
@@ -131,17 +92,4 @@ impl <'de> Deserialize<'de> for Date {
             .parse()
             .map_err(serde::de::Error::custom)
     }
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct Track {
-    title: String,
-    file: File,
-    duration: f32
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
-pub struct File {
-    mp3_128: String
 }
