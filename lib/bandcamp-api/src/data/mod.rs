@@ -1,5 +1,6 @@
 pub mod common;
 pub mod albums;
+pub mod search;
 
 pub trait Query: Sized {
     type Page;

@@ -1,0 +1,126 @@
+mod parse;
+
+use {
+    select::predicate::{Name, Predicate, Class},
+    crate::{
+        pages,
+        data::{
+            Query,
+            common::Date
+        }
+    }
+};
+
+#[derive(Debug)]
+pub struct Search {
+    pub results: Vec<SearchResult>
+}
+
+impl Query for Search {
+    type Page = pages::Search;
+    type Err = parse::Error;
+
+    fn query(page: &Self::Page) -> Result<Self, parse::Error> {
+        let results = page
+            .find(Name("div").and(Class("result-info")))
+            .filter_map(parse::parse_result)
+            .collect::<parse::Result<_>>()?;
+
+        Ok(Search { results })
+    }
+}
+
+#[derive(Debug)]
+pub enum SearchResult {
+    Artist(Artist),
+    Label(Label),
+    Album(Album),
+    Track(Track)
+}
+
+#[derive(Debug)]
+pub struct Artist {
+    pub heading: Heading,
+    pub sub_heading: Option<String>,
+    pub genre: Option<String>,
+    pub tags: Option<Tags>
+}
+
+#[derive(Debug)]
+pub struct Label {
+    pub heading: Heading,
+    pub sub_heading: Option<String>
+}
+
+#[derive(Debug)]
+pub struct Heading {
+    pub title: String,
+    pub url: String
+}
+
+#[derive(Debug)]
+pub struct Album {
+    pub heading: Heading,
+    pub by: String,
+    pub length: Length,
+    pub released: Date,
+    pub tags: Option<Tags>,
+}
+
+#[derive(Debug)]
+pub struct Length {
+    tracks: u16,
+    minutes: u16
+}
+
+#[derive(Debug)]
+pub struct Track {
+    pub heading: Heading,
+    pub source: Source,
+    pub released: Date,
+    pub tags: Option<Tags>,
+}
+
+#[derive(Debug)]
+pub struct Source {
+    pub from: Option<String>,
+    pub by: String
+}
+
+pub struct Tags {
+    pub string: String,
+    pub indices: Vec<usize>
+}
+
+impl Tags {
+    pub fn iter(&self) -> impl Iterator<Item = &str> {
+        std::iter::once(&0)
+            .chain(&self.indices)
+            .zip(self.indices.iter())
+            .map(move |(start, end)| &self.string[*start..*end])
+    }
+}
+
+use std::fmt;
+
+impl fmt::Debug for Tags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
+}
+
+impl fmt::Display for Tags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let tags = &mut self.iter();
+
+        for tag in tags.take(self.indices.len() - 1) {
+            write!(f, "{}, ", tag)?
+        }
+
+        if let Some(tag) = tags.next() {
+            tag.fmt(f)?
+        }
+
+        Ok(())
+    }
+}

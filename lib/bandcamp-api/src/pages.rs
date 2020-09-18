@@ -56,3 +56,30 @@ pub struct AlbumArgs {
     pub name: String
 }
 
+#[derive(Debug)]
+pub struct Search(Document);
+
+impl Page for Search {
+    type Args = SearchArgs;
+    type Url = String;
+
+    fn url(args: &Self::Args) -> Self::Url {
+        url!(bandcamp.com/"search?q={}&page={}", args.query, args.page)
+    }
+}
+
+pub struct SearchArgs {
+    query: String,
+    page: std::num::NonZeroU8
+}
+
+impl SearchArgs {
+    pub fn query(query: impl Into<String>) -> SearchArgs {
+        SearchArgs {
+            query: query.into(),
+            page: std::num::NonZeroU8::new(1).unwrap()
+        }
+    }
+}
+
+impls!(Search);
