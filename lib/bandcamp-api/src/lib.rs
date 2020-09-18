@@ -31,12 +31,12 @@ impl Api {
         }
     }
 
-    pub async fn query<T>(&self, args: &<T::Page as Page>::Args) -> QueryResult<T, T::Err>
+    pub async fn query<T, A>(&self, args: &A) -> QueryResult<T, T::Err>
     where 
         T: data::Query,
-        T::Page: Page,
+        T::Page: Page<A>,
         T::Err: snafu::Error + Display + 'static,
-        for <'url> &'url <T::Page as Page>::Url: reqwest::IntoUrl
+        for <'url> &'url <T::Page as Page<A>>::Url: reqwest::IntoUrl
     {
         let resp = self
             .client

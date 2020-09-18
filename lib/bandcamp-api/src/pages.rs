@@ -2,15 +2,14 @@ use {
     select::document::Document
 };
 
-pub trait Page
+pub trait Page<A: ?Sized>
 where
     Self: From<Document> + std::ops::Deref<Target = Document>,
-    for <'url> &'url <Self as Page>::Url: reqwest::IntoUrl
+    for <'url> &'url <Self as Page<A>>::Url: reqwest::IntoUrl
 {
-    type Args: ?Sized;
     type Url;
 
-    fn url(args: &Self::Args) -> Self::Url;
+    fn url(args: &A) -> Self::Url;
 }
 
 macro_rules! impls {
@@ -40,43 +39,41 @@ macro_rules! url {
 #[derive(Debug)]
 pub struct Album(Document);
 
-impl Page for Album {
-    type Args = AlbumArgs;
+impl <'a> Page<AlbumArgs<'a>> for Album {
     type Url = String;
 
-    fn url(args: &Self::Args) -> Self::Url {
+    fn url(args: &AlbumArgs) -> Self::Url {
         url!("{}".bandcamp.com/"album/{}", args.artist, args.name)
     }
 }
 
 impls!(Album);
 
-pub struct AlbumArgs {
-    pub artist: String,
-    pub name: String
+pub struct AlbumArgs<'a> {
+    pub artist: &'a str,
+    pub name: &'a str
 }
 
 #[derive(Debug)]
 pub struct Search(Document);
 
-impl Page for Search {
-    type Args = SearchArgs;
+impl <'a> Page<SearchArgs<'a>> for Search {
     type Url = String;
 
-    fn url(args: &Self::Args) -> Self::Url {
+    fn url(args: &SearchArgs) -> Self::Url {
         url!(bandcamp.com/"search?q={}&page={}", args.query, args.page)
     }
 }
 
-pub struct SearchArgs {
-    query: String,
+pub struct SearchArgs<'a> {
+    query: &'a str,
     page: std::num::NonZeroU8
 }
 
-impl SearchArgs {
-    pub fn query(query: impl Into<String>) -> SearchArgs {
+impl <'a> SearchArgs<'a> {
+    pub fn query(query: &'a str) -> SearchArgs {
         SearchArgs {
-            query: query.into(),
+            query,
             page: std::num::NonZeroU8::new(1).unwrap()
         }
     }
