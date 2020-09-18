@@ -6,10 +6,12 @@ use {
     select::predicate::Name,
     crate::{
         pages,
-        data::Query
+        data::{
+            Query,
+            common::Date
+        }
     }
 };
-
 
 #[derive(Debug, Clone)]
 pub struct Album {
@@ -37,13 +39,6 @@ pub struct Info {
     pub about: String,
     pub credits: String,
     pub release_date: Date
-}
-
-#[derive(Debug, Clone)]
-pub struct Date {
-    pub day: u8,
-    pub month: String,
-    pub year: u16
 }
 
 #[derive(Deserialize, Debug, Clone)]
