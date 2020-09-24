@@ -119,8 +119,7 @@ where
 
     fn next<'b>(&mut self, buf: BufMut<'b>) -> Result<Event<'b>> {
         loop {
-            let mbuf = unsafe { &mut *(buf as *mut _) };
-            let event = self.scraper.read_event(mbuf)?;
+            let event = self.scraper.read_event(reborrow(buf))?;
             match event {
                 Event::Eof => return Ok(event),
                 event if self.filter.start(&event) => {
@@ -128,10 +127,18 @@ where
                     return Ok(event)
                 },
                 _ => {
-                    let mbuf = unsafe { &mut *(buf as *mut _) };
-                    Buf::clear(mbuf)
+                    reborrow(buf).clear()
                 }
             }
+        }
+
+        // this is necessary so we can repeatedly access
+        // the buffer from within the loop
+        //
+        // since we don't hand out any of these borrows
+        // to outside the function, this should be fine
+        fn reborrow<'a>(buf: *mut Buf) -> BufMut<'a> {
+            unsafe { &mut *buf }
         }
     }
 
