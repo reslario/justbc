@@ -1,0 +1,66 @@
+use {
+    std::str::FromStr,
+    serde::Deserialize,
+    snafu::{Snafu, OptionExt, ResultExt},
+    super::{
+        Date,
+        Month,
+        super::parse
+    },
+};
+
+#[derive(Debug, Snafu)]
+#[snafu(visibility(pub))]
+pub enum DateParseError {
+    #[snafu(display("parse error: {}", source))]
+    Parse { source: parse::ParseError<std::num::ParseIntError> },
+    #[snafu(display("invalid month"))]
+    InvalidMonth
+}
+
+impl FromStr for Date {
+    type Err = DateParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut fields = s.split(' ');
+
+        Ok(Date {
+            day: next_parsed(&mut fields, "day")?,
+            month: next(&mut fields, "month")?.parse()?,
+            year: next_parsed(&mut fields, "year")?
+        })
+    }
+}
+
+fn next<'a>(mut iter: impl Iterator<Item = &'a str>, field: &'static str) -> Result<&'a str, DateParseError> {
+    iter.next()
+        .context(parse::MissingField { field })
+        .context(Parse)
+}
+
+fn next_parsed<'a, T>(iter: impl Iterator<Item = &'a str>, field: &'static str) -> Result<T, DateParseError>
+where T: std::str::FromStr<Err = std::num::ParseIntError> {
+    next(iter, field)?
+        .parse()
+        .context(parse::Parse { field })
+        .context(Parse)
+}
+
+impl <'de> Deserialize<'de> for Date {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D: serde::Deserializer<'de> {
+        <&str>::deserialize(deserializer)?
+            .parse()
+            .map_err(serde::de::Error::custom)
+    }
+}
+
+impl FromStr for Month {
+    type Err = DateParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Month::iter()
+            .find(|month| month.matches_str(s))
+            .context(InvalidMonth)
+    }
+}

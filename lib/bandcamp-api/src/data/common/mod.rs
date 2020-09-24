@@ -1,8 +1,4 @@
 pub mod parse;
+pub mod date;
 
-#[derive(Debug, Clone)]
-pub struct Date {
-    pub day: u8,
-    pub month: String,
-    pub year: u16
-}
+pub use date::{Date, Month};

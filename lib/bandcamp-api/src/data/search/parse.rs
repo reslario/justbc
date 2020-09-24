@@ -8,6 +8,7 @@ use {
         extract::*
     },
     crate::data::common::{
+        date,
         Date,
         parse::*
     },
@@ -23,7 +24,7 @@ pub enum Error {
     #[snafu(display("error parsing tags"))]
     ParseTags,
     #[snafu(display("error parsing date: {}", source))]
-    ParseDate { source: DateParseError },
+    ParseDate { source: date::parse::DateParseError },
     #[snafu(display("error parsing length: {}", source))]
     ParseLength { source: LengthParseError }
 }
@@ -161,6 +162,7 @@ fn parse_release_date(date: impl AsRef<str>) -> Result<Date> {
         .trim()
         .strip_prefix(START)
         .context(MissingField { field: START })
+        .context(date::parse::Parse)
         .context(ParseDate)?
         .trim_start()
         .parse()
