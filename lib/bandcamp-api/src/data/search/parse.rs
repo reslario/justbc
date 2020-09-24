@@ -1,9 +1,11 @@
 use {
     super::*,
     snafu::{Snafu, OptionExt, ResultExt},
-    select::{
-        node::Node,
-        predicate::Class,
+    scrape::{
+        BufMut,
+        Scrape,
+        filter,
+        extract::*
     },
     crate::data::common::{
         Date,
@@ -12,7 +14,10 @@ use {
 };
 
 #[derive(Debug, Snafu)]
+#[snafu(visibility(pub(super)))]
 pub enum Error {
+    #[snafu(display("error extracting data: {}", source))]
+    Read { source: scrape::Error },
     #[snafu(display("missing information: {}", info))]
     MissingInfo { info: &'static str },
     #[snafu(display("error parsing tags"))]
@@ -25,60 +30,69 @@ pub enum Error {
 
 pub(super) type Result<T> = std::result::Result<T, Error>;
 
-pub(super) fn parse_result(node: Node) -> Option<Result<SearchResult>> {
+pub(super) fn parse_result(mut scraper: impl Scrape, buf: BufMut) -> Result<Option<SearchResult>> {
     use SearchResult as R;
 
-    div(node, "itemtype").map(|ty| match ty.trim() {
-        "ALBUM" => parse(node, parse_album, R::Album).into(),
-        "TRACK" => parse(node, parse_track, R::Track).into(),
-        "LABEL" => parse(node, parse_label, R::Label).into(),
-        "ARTIST" => parse(node, parse_artist, R::Artist).into(),
+    match div(&mut scraper, "itemtype", buf)?.as_str() {
+        "ALBUM" => parse(&mut scraper, parse_album, R::Album, buf).into(),
+        "TRACK" => parse(&mut scraper, parse_track, R::Track, buf).into(),
+        "LABEL" => parse(&mut scraper, parse_label, R::Label, buf).into(),
+        "ARTIST" => parse(&mut scraper, parse_artist, R::Artist, buf).into(),
         _ => None
-    })
-    .transpose()
-    .map(|res| res?)
+    }.transpose()
 }
 
-fn parse<T>(
-    node: Node,
-    parse: impl Fn(Node) -> Result<T>,
-    map: impl Fn(T) -> SearchResult
+fn div(scraper: impl Scrape, class: &'static str, buf: BufMut) -> Result<String> {
+    scraper
+        .into_filter(filter::div().class(class))
+        .step(buf)
+        .context(Read)?
+        .extract(text, buf)
+        .context(Read)?
+        .context(missing(class))
+}
+
+fn parse<T, S>(
+    scraper: S,
+    parse: impl Fn(S, BufMut) -> Result<T>,
+    map: impl Fn(T) -> SearchResult,
+    buf: BufMut
 ) -> Result<SearchResult> {
-    parse(node).map(map)
+    parse(scraper, buf).map(map)
 }
 
-fn parse_album(node: Node) -> Result<Album> {
+fn parse_album(mut scraper: impl Scrape, buf: BufMut) -> Result<Album> {
     Ok(Album {
-        heading: heading(node)?,
-        by: by(node)?,
-        length:  length(node)?,
-        released:  release_date(node)?,
-        tags: parse_tags(node).transpose()?
+        heading: heading(&mut scraper, buf)?,
+        by: by(&mut scraper, buf)?,
+        length:  length(&mut scraper, buf)?,
+        released:  release_date(&mut scraper, buf)?,
+        tags: tags(scraper, buf).transpose()?
     })
 }
 
-fn parse_track(node: Node) -> Result<Track> {
+fn parse_track(mut scraper: impl Scrape, buf: BufMut) -> Result<Track> {
     Ok(Track {
-        heading: heading(node)?,
-        source: source(node)?,
-        released: release_date(node)?,
-        tags: parse_tags(node).transpose()?
+        heading: heading(&mut scraper, buf)?,
+        source: source(&mut scraper, buf)?,
+        released: release_date(&mut scraper, buf)?,
+        tags: tags(scraper, buf).transpose()?
     })
 }
 
-fn parse_label(node: Node) -> Result<Label> {
+fn parse_label(mut scraper: impl Scrape, buf: BufMut) -> Result<Label> {
     Ok(Label {
-        heading: heading(node)?,
-        sub_heading: sub_heading(node)?
+        heading: heading(&mut scraper, buf)?,
+        sub_heading: sub_heading(scraper, buf)
     })
 }
 
-fn parse_artist(node: Node) -> Result<Artist> {
+fn parse_artist(mut scraper: impl Scrape, buf: BufMut) -> Result<Artist> {
     Ok(Artist {
-        heading: heading(node)?,
-        sub_heading: sub_heading(node)?,
-        tags:  parse_tags(node).transpose()?,
-        genre: genre(node),
+        heading: heading(&mut scraper, buf)?,
+        sub_heading: sub_heading(&mut scraper, buf),
+        genre: genre(&mut scraper, buf),
+        tags:  tags(scraper, buf).transpose()?,
     })
 }
 
@@ -86,48 +100,30 @@ fn missing(info: &'static str) -> MissingInfo<&'static str> {
     MissingInfo { info }
 }
 
-fn heading(node: Node) -> Result<Heading> {
-    let node = div_node(node, "heading")?;
-    let a = node
-        .children()
-        .nth(1)
-        .context(missing("heading title"))?;
+fn heading(scraper: impl Scrape, buf: BufMut) -> Result<Heading> {
+    let mut a = scraper
+        .into_filter(filter::div().class("heading"))
+        .into_filter(tag("a"));
 
     Ok(Heading {
-        title: a.text().trim().into(),
-        url: a.attr("href")
-            .context(missing("heading link"))?
-            .into(),
+        url: a.extract(attr("href"), buf)
+            .context(Read)?
+            .context(missing("heading link"))?,
+        title: a.extract(text, buf)
+            .context(Read)?
+            .context(missing("heading title"))?
     })
 }
 
-fn div<'n>(node: Node<'n>, class: &'static str) -> Result<&'n str> {
-    div_text(div_node(node, class)?)
-        .context(missing(class))
+fn sub_heading(scraper: impl Scrape, buf: BufMut) -> Option<String> {
+    div(scraper, "subhead", buf).ok()
 }
 
-fn div_node<'n>(node: Node<'n>, class: &'static str) -> Result<Node<'n>> {
-    node.find(Class(class))
-        .next()
-        .context(missing(class))
-}
-
-fn div_text(node: Node) -> Option<&str> {
-    node.first_child()?
-        .as_text()
-        .map(str::trim)
-}
-
-fn sub_heading(node: Node) -> Result<Option<String>> {
-    div(node, "subhead")
-        .map(str::to_string)
-        .map(|s| Some(s).filter(|s| !s.is_empty()))
-}
-
-fn parse_tags(node: Node) -> Option<Result<Tags>> {
-    div(node, "tags")
-        .ok()
-        .map(str::parse)
+fn tags(scraper: impl Scrape, buf: BufMut) -> Option<Result<Tags>> {
+    div(scraper, "tags", buf)
+        .ok()?
+        .parse()
+        .into()
 }
 
 impl std::str::FromStr for Tags {
@@ -153,15 +149,16 @@ impl std::str::FromStr for Tags {
     }
 }
 
-fn release_date(node: Node) -> Result<Date> {
-    div(node, "released")
+fn release_date(scraper: impl Scrape, buf: BufMut) -> Result<Date> {
+    div(scraper, "released", buf)
         .and_then(parse_release_date)
 }
 
-fn parse_release_date(date: &str) -> Result<Date> {
+fn parse_release_date(date: impl AsRef<str>) -> Result<Date> {
     const START: &str = "released";
 
-    date.trim()
+    date.as_ref()
+        .trim()
         .strip_prefix(START)
         .context(MissingField { field: START })
         .context(ParseDate)?
@@ -170,23 +167,24 @@ fn parse_release_date(date: &str) -> Result<Date> {
         .context(ParseDate)
 }
 
-fn by(node: Node) -> Result<String> {
-    div(node, "subhead")
+fn by(scraper: impl Scrape, buf: BufMut) -> Result<String> {
+    div(scraper, "subhead", buf)
         .and_then(parse_by)
 }
 
-fn parse_by(by: &str) -> Result<String> {
+fn parse_by(by: impl AsRef<str>) -> Result<String> {
     const START: &str = "by ";
 
-    by.trim()
+    by.as_ref()
+        .trim()
         .strip_prefix(START)
         .context(missing(START))
         .map(<_>::into)
 }
 
-fn source(node: Node) -> Result<Source> {
-    div(node, "subhead")
-        .and_then(str::parse)
+fn source(scraper: impl Scrape, buf: BufMut) -> Result<Source> {
+    div(scraper, "subhead", buf)
+        .and_then(|s| s.parse())
 }
 
 impl std::str::FromStr for Source {
@@ -213,15 +211,17 @@ fn parse_from(from: &str) -> (Option<String>, &str) {
         .unwrap_or((None, from))
 }
 
-fn genre(node: Node) -> Option<String> {
-    div(node, "genre")
+fn genre(scraper: impl Scrape, buf: BufMut) -> Option<String> {
+    div(scraper, "genre", buf)
         .ok()
-        .and_then(|genre| genre.strip_prefix("genre: "))
-        .map(<_>::into)
+        .and_then(|genre| genre
+            .strip_prefix("genre: ")
+            .map(<_>::into)
+        )
 }
 
-fn length(node: Node) -> Result<Length> {
-    div(node, "length")?
+fn length(scraper: impl Scrape, buf: BufMut) -> Result<Length> {
+    div(scraper, "length", buf)?
         .parse()
         .context(ParseLength)
 }

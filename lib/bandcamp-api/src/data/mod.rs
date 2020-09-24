@@ -2,9 +2,8 @@ pub mod common;
 pub mod albums;
 pub mod search;
 
-pub trait Query: Sized {
-    type Page;
+pub trait Query<P>: Sized {
     type Err;
 
-    fn query(page: &Self::Page) -> Result<Self, Self::Err>;
+    fn query(page: P) -> Result<Self, Self::Err>;
 }

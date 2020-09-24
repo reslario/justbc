@@ -3,7 +3,10 @@ mod parse;
 use {
     snafu::OptionExt,
     serde::Deserialize,
-    select::predicate::Name,
+    scrape::{
+        Scrape,
+        filter::*
+    },
     crate::{
         pages,
         data::{
@@ -13,23 +16,25 @@ use {
     }
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Album {
+    #[serde(rename = "current")]
     pub info: Info,
+    #[serde(rename = "trackinfo")]
     pub tracks: Vec<Track>
 }
 
-impl Query for Album {
-    type Page = pages::Album;
+impl Query<pages::Album> for Album {
     type Err = parse::Error;
 
-    fn query(page: &Self::Page) -> Result<Self, Self::Err> {
-        page.find(Name("script"))
-            .filter_map(|script| script.first_child())
-            .filter_map(|script| script.as_text())
-            .find_map(parse::album_data_str)
+    fn query(mut page: pages::Album) -> Result<Self, Self::Err> {
+        let mut scripts = page.filter(tag("script"));
+        let mut buf = vec![];
+
+        std::iter::repeat(())
+            .find_map(|_| parse::get_json(&mut scripts, &mut buf))
             .context(parse::NoInfo)
-            .and_then(parse::parse_album_data)
+            .and_then(parse::parse_json)
     }
 }
 

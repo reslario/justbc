@@ -1,7 +1,11 @@
 mod parse;
 
 use {
-    select::predicate::{Name, Predicate, Class},
+    snafu::ResultExt,
+    scrape::{
+        Scrape,
+        filter::*
+    },
     crate::{
         pages,
         data::{
@@ -16,17 +20,28 @@ pub struct Search {
     pub results: Vec<SearchResult>
 }
 
-impl Query for Search {
-    type Page = pages::Search;
+impl Search {
+    const PER_PAGE: usize = 18;
+}
+
+impl Query<pages::Search> for Search {
     type Err = parse::Error;
 
-    fn query(page: &Self::Page) -> Result<Self, parse::Error> {
-        let results = page
-            .find(Name("div").and(Class("result-info")))
-            .filter_map(parse::parse_result)
-            .collect::<parse::Result<_>>()?;
+    fn query(mut page: pages::Search) -> Result<Self, parse::Error> {
+        let mut results = Vec::with_capacity(Search::PER_PAGE);
+        let mut infos = page.filter(div().class("result-info"));
+        let mut buf = vec![];
 
-        Ok(Search { results })
+        loop {
+            let mut info = infos.take(1);
+            if let scrape::Event::Eof = info.read_event(&mut buf).context(parse::Read)? {
+                return Ok(Search { results })
+            } else {
+                if let Some(result) = parse::parse_result(info, &mut buf)? {
+                    results.push(result)
+                }
+            }
+        }
     }
 }
 

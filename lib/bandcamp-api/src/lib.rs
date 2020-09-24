@@ -3,10 +3,9 @@ pub mod pages;
 
 use {
     pages::Page,
+    scrape::Scraper,
     std::fmt::Display,
     snafu::{Snafu, ResultExt},
-    select::document::Document
-
 };
 
 #[derive(Debug, Snafu)]
@@ -31,25 +30,26 @@ impl Api {
         }
     }
 
-    pub async fn query<T, A>(&self, args: &A) -> QueryResult<T, T::Err>
+    pub async fn query<T, P, A>(&self, args: &A) -> QueryResult<T, T::Err>
     where 
-        T: data::Query,
-        T::Page: Page<A>,
+        T: data::Query<P>,
+        P: Page<A>,
         T::Err: snafu::Error + Display + 'static,
-        for <'url> &'url <T::Page as Page<A>>::Url: reqwest::IntoUrl
+        for <'url> &'url <P as Page<A>>::Url: reqwest::IntoUrl
     {
         let resp = self
             .client
-            .get(&T::Page::url(args))
+            .get(&P::url(args))
             .send()
             .await
             .context(Connection)?
             .text()
             .await
-            .context(Connection)?;
+            .context(Connection)
+            .map(std::io::Cursor::new)?;
 
-        let page = Document::from(resp.as_str()).into();
+        let page = Scraper::new(resp).into();
 
-        T::query(&page).context(Data)
+        T::query(page).context(Data)
     }
 }

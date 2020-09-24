@@ -1,10 +1,8 @@
-use {
-    select::document::Document
-};
+type Scraper = scrape::Scraper<std::io::Cursor<String>>;
 
 pub trait Page<A: ?Sized>
 where
-    Self: From<Document> + std::ops::Deref<Target = Document>,
+    Self: From<Scraper> + std::ops::DerefMut<Target = Scraper>,
     for <'url> &'url <Self as Page<A>>::Url: reqwest::IntoUrl
 {
     type Url;
@@ -14,17 +12,23 @@ where
 
 macro_rules! impls {
     ($page:path) => {
-        impl From<Document> for $page {
-            fn from(doc: Document) -> Self {
-                $page(doc)
+        impl From<Scraper> for $page {
+            fn from(scraper: Scraper) -> Self {
+                $page(scraper)
             }
         }
 
         impl std::ops::Deref for $page {
-            type Target = Document;
+            type Target = Scraper;
 
             fn deref(&self) -> &Self::Target {
                 &self.0
+            }
+        }
+
+        impl std::ops::DerefMut for $page {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.0
             }
         }
     };
@@ -36,8 +40,7 @@ macro_rules! url {
     };
 }
 
-#[derive(Debug)]
-pub struct Album(Document);
+pub struct Album(Scraper);
 
 impl <'a> Page<AlbumArgs<'a>> for Album {
     type Url = String;
@@ -54,8 +57,7 @@ pub struct AlbumArgs<'a> {
     pub name: &'a str
 }
 
-#[derive(Debug)]
-pub struct Search(Document);
+pub struct Search(Scraper);
 
 impl <'a> Page<SearchArgs<'a>> for Search {
     type Url = String;
@@ -64,6 +66,8 @@ impl <'a> Page<SearchArgs<'a>> for Search {
         url!(bandcamp.com/"search?q={}&page={}", args.query, args.page)
     }
 }
+
+impls!(Search);
 
 pub struct SearchArgs<'a> {
     query: &'a str,
@@ -78,5 +82,3 @@ impl <'a> SearchArgs<'a> {
         }
     }
 }
-
-impls!(Search);
