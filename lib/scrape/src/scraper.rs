@@ -58,6 +58,26 @@ pub trait Scrape: Sized {
     where F: for<'evt> filter::Filter<'evt> {
         Filtered::new(self, filter)
     }
+
+    /// Runs the provided extraction function until it returns `Some` or
+    /// [Eof](crate::Event::Eof) is reached.
+    fn find_extract<F, T>(&mut self, mut f: F, buf: BufMut) -> Result<Option<T>>
+    where F: for<'evt> FnMut(Event<'evt>) -> Option<Result<T>> {
+        loop {
+            match self.read_event(buf)? {
+                Event::Eof => {
+                    buf.clear();
+                    return Ok(None)
+                },
+                event => if let Some(result) = f(event) {
+                    buf.clear();
+                    return Some(result).transpose()
+                } else {
+                    buf.clear()
+                }
+            }
+        }
+    }
 }
 
 impl <S: Scrape> Scrape for &mut S {
