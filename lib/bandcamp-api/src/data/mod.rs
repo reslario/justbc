@@ -1,5 +1,5 @@
 pub mod common;
-pub mod albums;
+pub mod releases;
 pub mod search;
 
 pub trait Query<P>: Sized {

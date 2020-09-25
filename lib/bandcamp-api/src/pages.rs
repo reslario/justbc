@@ -42,17 +42,23 @@ macro_rules! url {
 
 pub struct Album(Scraper);
 
-impl <'a> Page<AlbumArgs<'a>> for Album {
+impl <'a> Page<ReleaseArgs<'a>> for Album {
     type Url = String;
 
-    fn url(args: &AlbumArgs) -> Self::Url {
-        url!("{}".bandcamp.com/"album/{}", args.artist, args.name)
+    fn url(args: &ReleaseArgs) -> Self::Url {
+        url!(
+            "{}".bandcamp.com/"{}/{}",
+            args.artist,
+            args.kind.url_segment(),
+            args.name
+        )
     }
 }
 
 impls!(Album);
 
-pub struct AlbumArgs<'a> {
+pub struct ReleaseArgs<'a> {
+    pub kind: crate::data::releases::ReleaseKind,
     pub artist: &'a str,
     pub name: &'a str
 }
