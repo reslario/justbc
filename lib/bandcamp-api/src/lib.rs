@@ -34,6 +34,7 @@ impl Api {
     where 
         T: data::Query<P>,
         P: Page<A>,
+        A: ?Sized,
         T::Err: snafu::Error + Display + 'static,
         for <'url> &'url <P as Page<A>>::Url: reqwest::IntoUrl
     {
