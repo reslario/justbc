@@ -1,6 +1,7 @@
 pub mod common;
 pub mod releases;
 pub mod search;
+pub mod outlets;
 
 pub trait Query<P>: Sized {
     type Err;

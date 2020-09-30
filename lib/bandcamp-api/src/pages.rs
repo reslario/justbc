@@ -88,3 +88,15 @@ impl <'a> SearchArgs<'a> {
         }
     }
 }
+
+pub struct Outlet(Scraper);
+
+impl Page<str> for Outlet {
+    type Url = String;
+
+    fn url(name: &str) -> Self::Url {
+        url!("{}".bandcamp.com/"music", name)
+    }
+}
+
+impls!(Outlet);
