@@ -165,9 +165,13 @@ where
     /// Creates a scraper that only reads `n` instances
     /// of the set of events that this filtered scraper
     /// produces and will emit [Eof](crate::Event::Eof) after that.
-    pub fn take(&mut self, n: usize) -> Take<S, F> {
+    pub fn take(&mut self, n: usize) -> Take<S, F, &mut Self> {
         Take::new(self, n)
     } 
+
+    pub fn into_take(self, n: usize) -> Take<S, F, Self> {
+        Take::new(self, n)
+    }
 }
 
 impl <'src, S, F> Scrape for Filtered<S, F>
@@ -187,38 +191,43 @@ where
 }
 
 /// Scraper created by [Filtered::take](Filtered::take).
-pub struct Take<'a, S, F> {
-    filtered: &'a mut Filtered<S, F>,
+pub struct Take<S, F, B> {
+    filtered: B,
     taken: usize,
     n: usize,
+    _marker: std::marker::PhantomData<(S, F)>
 }
 
-impl <'a, S, F> Take<'a, S, F> {
-    fn new(filtered: &'a mut Filtered<S, F>, n: usize) -> Self {
+impl <S, F, B> Take<S, F, B> {
+    fn new(filtered: B, n: usize) -> Self {
         Take {
             filtered,
             taken: 0,
-            n
+            n,
+            _marker: <_>::default()
         }
     }
 }
 
-impl <'a, S, F> Scrape for Take<'a, S, F>
+impl <S, F, B> Scrape for Take<S, F, B>
 where 
+    B: std::borrow::BorrowMut<Filtered<S, F>>,
     F: for<'evt> filter::Filter<'evt>,
     S: Scrape
 {
     fn read_event<'b>(&mut self, buf: &'b mut Buf) -> Result<Event<'b>> {
-        if self.filtered.inside {
-            let event = self.filtered.scraper.read_event(buf)?;
-            self.filtered.inside = !self.filtered.filter.end(&event);
+        let filtered = self.filtered.borrow_mut();
+        
+        if filtered.inside {
+            let event = filtered.scraper.read_event(buf)?;
+            filtered.inside = !filtered.filter.end(&event);
             Ok(event)
         } else {
             if self.taken == self.n {
                 Ok(Event::Eof)
             } else {
                 self.taken += 1;
-                self.filtered.next(buf)
+                filtered.next(buf)
             }
         }
     }
