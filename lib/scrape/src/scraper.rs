@@ -78,6 +78,18 @@ pub trait Scrape: Sized {
             }
         }
     }
+
+    /// Reads events until [Eof](crate::Event::Eof) is reached.
+    fn read_to_end(&mut self, buf: BufMut) -> Result<()> {
+        loop {
+            if let Event::Eof = self.read_event(buf)? {
+                buf.clear();
+                return Ok(())
+            }
+
+            buf.clear();
+        }
+    }
 }
 
 impl <S: Scrape> Scrape for &mut S {
