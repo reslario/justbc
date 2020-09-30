@@ -15,7 +15,8 @@ pub fn text<'evt>(event: Event<'evt>) -> Option<crate::Result<String>> {
 }
 
 /// Extracts the value of an attribute from a [start event](crate::Event::Start).
-/// Returns None if the event is not a [start event](crate::Event::Start).
+/// Returns None if the event is not a [start event](crate::Event::Start) or the
+/// attribute isn't present.
 pub fn attr(name: impl AsRef<[u8]>) -> impl for<'evt> FnMut(Event<'evt>) -> Option<crate::Result<String>> {
     move |event| match event {
         Event::Start(tag) => tag
