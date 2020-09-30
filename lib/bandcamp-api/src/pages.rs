@@ -35,8 +35,8 @@ macro_rules! impls {
 }
 
 macro_rules! url {
-    ($($sub:literal .)? bandcamp.com / $path:literal, $($arg:expr),*) => {
-        format!(concat!("https://", $($sub, ".",)? "bandcamp.com/", $path), $($arg),*)
+    ($($sub:literal .)? bandcamp.com $(/ $path:literal)?, $($arg:expr),*) => {
+        format!(concat!("https://", $($sub, ".",)? "bandcamp.com", $("/", $path)?), $($arg),*)
     };
 }
 
