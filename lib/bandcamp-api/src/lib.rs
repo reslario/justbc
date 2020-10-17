@@ -26,9 +26,11 @@ pub struct Api {
 
 impl Api {
     pub fn new() -> Api {
-        Api {
-            client: reqwest::Client::new()
-        }
+        Api::with_client(Client::new())
+    }
+
+    pub fn with_client(client: Client) -> Api {
+        Api { client }
     }
 
     pub fn query<T, P, A>(&self, args: &A) -> QueryResult<T, T::Err>
