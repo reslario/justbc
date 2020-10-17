@@ -1,4 +1,4 @@
-type Scraper = scrape::Scraper<std::io::Cursor<String>>;
+type Scraper = scrape::Scraper<std::io::Cursor<bytes::Bytes>>;
 
 pub trait Page<A: ?Sized>
 where

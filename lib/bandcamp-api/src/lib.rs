@@ -41,17 +41,16 @@ impl Api {
         T::Err: snafu::Error + Display + 'static,
         for <'url> &'url <P as Page<A>>::Url: reqwest::IntoUrl
     {
-        let resp = self
-            .client
+        self.client
             .get(&P::url(args))
             .send()
             .context(Connection)?
-            .text()
+            .bytes()
             .context(Connection)
-            .map(std::io::Cursor::new)?;
-
-        let page = Scraper::new(resp).into();
-
-        T::query(page).context(Data)
+            .map(std::io::Cursor::new)
+            .map(Scraper::new)
+            .map(<_>::into)
+            .map(T::query)?
+            .context(Data)
     }
 }
