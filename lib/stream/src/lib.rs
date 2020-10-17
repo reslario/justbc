@@ -41,6 +41,8 @@ where R: Read + Send + Sync + 'static {
 
 impl <R> AudioStream<R>
 where R: Read + Send + Sync + 'static {
+    /// Creates a new `AudioStream` and fetches some data
+    /// on its background thread.
     pub fn new(reader: R) -> io::Result<Self> {
         let mut stream = AudioStream {
             fetch_thread: FetchThread::new()?,
