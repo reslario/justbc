@@ -5,7 +5,8 @@ use {
     pages::Page,
     scrape::Scraper,
     std::fmt::Display,
-    snafu::{Snafu, ResultExt},
+    reqwest::blocking::Client,
+    snafu::{Snafu, ResultExt}
 };
 
 #[derive(Debug, Snafu)]
@@ -20,7 +21,7 @@ where DE: std::fmt::Display + snafu::Error + 'static {
 pub type QueryResult<T, DE> = Result<T, QueryError<DE>>;
 
 pub struct Api {
-    client: reqwest::Client
+    client: Client
 }
 
 impl Api {
@@ -30,7 +31,7 @@ impl Api {
         }
     }
 
-    pub async fn query<T, P, A>(&self, args: &A) -> QueryResult<T, T::Err>
+    pub fn query<T, P, A>(&self, args: &A) -> QueryResult<T, T::Err>
     where 
         T: data::Query<P>,
         P: Page<A>,
@@ -42,10 +43,8 @@ impl Api {
             .client
             .get(&P::url(args))
             .send()
-            .await
             .context(Connection)?
             .text()
-            .await
             .context(Connection)
             .map(std::io::Cursor::new)?;
 

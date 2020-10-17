@@ -71,13 +71,13 @@ pub struct Info {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Track {
-    title: String,
-    file: File,
-    duration: f32
+    pub title: String,
+    pub file: File,
+    pub duration: f32
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct File {
-    mp3_128: String
+    pub mp3_128: String
 }
