@@ -50,8 +50,8 @@ name = "bandcamp"
 version = "0.1.0"
 dependencies = [
  "bandcamp-api",
- "bc-tui",
  "crossterm 0.18.0",
+ "gen-tui",
  "play",
  "reqwest",
  "rodio",
@@ -81,9 +81,6 @@ checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
 [[package]]
 name = "bc-tui"
 version = "0.1.0"
-dependencies = [
- "tui",
-]
 
 [[package]]
 name = "bindgen"
@@ -538,6 +535,13 @@ dependencies = [
  "pin-project",
  "pin-utils",
  "slab",
+]
+
+[[package]]
+name = "gen-tui"
+version = "0.1.0"
+dependencies = [
+ "tui",
 ]
 
 [[package]]
