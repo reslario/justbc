@@ -34,13 +34,17 @@ pub(super) type Result<T> = std::result::Result<T, Error>;
 pub(super) fn parse_result(mut scraper: impl Scrape, buf: BufMut) -> Result<Option<SearchResult>> {
     use SearchResult as R;
 
-    match div(&mut scraper, "itemtype", buf)?.as_str() {
+    let result = match div(&mut scraper, "itemtype", buf)?.as_str() {
         "ALBUM" => parse(&mut scraper, parse_album, R::Album, buf).into(),
         "TRACK" => parse(&mut scraper, parse_track, R::Track, buf).into(),
         "LABEL" => parse(&mut scraper, parse_label, R::Label, buf).into(),
         "ARTIST" => parse(&mut scraper, parse_artist, R::Artist, buf).into(),
         _ => None
-    }.transpose()
+    }.transpose()?;
+
+    scraper.read_to_end(buf).context(Read)?;
+
+    Ok(result)
 }
 
 fn div(scraper: impl Scrape, class: &'static str, buf: BufMut) -> Result<String> {
