@@ -19,7 +19,8 @@ pub use rodio::{PlayError, StreamError};
 /// it need to change.
 pub struct Player<S> {
     handle: Handle,
-    current: Option<Track<S>>
+    current: Option<Track<S>>,
+    volume: f32
 }
 
 impl <S> Player<S> 
@@ -33,7 +34,8 @@ where
         Handle::new()
             .map(|handle| Player {
                 handle,
-                current: None
+                current: None,
+                volume: 1.
             })
     }
 
@@ -48,6 +50,7 @@ where
             .map(Ok)
             .unwrap_or_else(|| self.handle.new_sink())?;
 
+        sink.set_volume(self.volume);
         sink.append(source);
 
         let mut track = Track::new(sink, retr);
@@ -102,6 +105,13 @@ where
         self.handle = handle;
 
         Ok(())
+    }
+
+    /// Sets the volume of the player, which persists between
+    /// playing different sounds.
+    pub fn set_volume(&mut self, volume: f32) {
+        self.volume = volume;
+        self.mut_track(|track| track.set_volume(volume))
     }
 }
 

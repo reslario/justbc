@@ -62,6 +62,8 @@ where
 
     /// Attempts to resume playback on a different `Sink`.
     pub fn set_sink(&mut self, sink: Sink) -> Result<(), CannotResume> {
+        sink.set_volume(self.sink.volume());
+
         let paused = self.sink.is_paused();
         self.pause();
 
@@ -82,5 +84,10 @@ where
         self.pause();
         self.sink.stop();
         self.sink
+    }
+
+    /// Sets the volume of the track.
+    pub fn set_volume(&self, volume: f32) {
+        self.sink.set_volume(volume)
     }
 }
