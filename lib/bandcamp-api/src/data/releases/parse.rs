@@ -25,3 +25,8 @@ pub(super) fn parse_json(string: impl AsRef<str>) -> Result<Release, Error> {
     serde_json::from_str(string.as_ref())
         .context(Serde)
 }
+pub(super) fn f32_duration<'de, D>(deserializer: D) -> Result<std::time::Duration, D::Error> 
+where D: serde::de::Deserializer<'de> {
+    <_>::deserialize(deserializer)
+        .map(std::time::Duration::from_secs_f32)
+}

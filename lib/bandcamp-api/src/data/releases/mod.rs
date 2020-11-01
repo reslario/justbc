@@ -1,12 +1,15 @@
 mod parse;
 
 use {
-    std::fmt,
     serde::Deserialize,
     snafu::{OptionExt, ResultExt},
     scrape::{
         Scrape,
         filter::*
+    },
+    std::{
+        fmt,
+        time::Duration
     },
     crate::{
         pages,
@@ -19,6 +22,7 @@ use {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Release {
+    pub artist: String,
     #[serde(rename = "current")]
     pub info: Info,
     #[serde(rename = "trackinfo")]
@@ -73,7 +77,8 @@ pub struct Info {
 pub struct Track {
     pub title: String,
     pub file: File,
-    pub duration: f32
+    #[serde(deserialize_with = "parse::f32_duration")]
+    pub duration: Duration
 }
 
 #[derive(Deserialize, Debug, Clone)]
