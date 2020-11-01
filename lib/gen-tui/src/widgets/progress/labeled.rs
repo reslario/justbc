@@ -1,5 +1,6 @@
 use {
     std::{fmt, ops},
+    builder::builder_methods,
     crate::{
         layout::RectExt,
         widgets::ProgressBar
@@ -49,45 +50,31 @@ where
     T: fmt::Display + ops::Div<T, Output = f32>,
     S: AsRef<[char]>
 {
-    /// Sets the maximum (end) value of the progress bar.
-    pub fn max(self, max: T) -> Self {
-        Self { max, ..self }
-    }
+    builder_methods! {
+        /// Sets the maximum (end) value of the progress bar.
+        pub max: T;
 
-    /// Sets the curent position of the progress bar.
-    pub fn pos(self, pos: T) -> Self {
-        Self { pos, ..self }
-    }
+        /// Sets the curent position of the progress bar.
+        pub pos: T;
 
-    /// Sets the symbols this progress bar uses.
-    ///
-    /// See [ProgressBar::symbols](crate::widgets::ProgressBar::symbols)
-    /// for more info.
-    pub fn symbols(self, symbols: S) -> Self {
-        Self { symbols, ..self }
-    }
+        // Sets the symbols this progress bar uses.
+        ///
+        /// See [ProgressBar::symbols](crate::widgets::ProgressBar::symbols)
+        /// for more info.
+        pub symbols: S;
 
-    /// Sets the placement of the label(s).
-    pub fn placement(self, placement: Placement) -> Self {
-        Self { placement, ..self }
-    }
+        /// Sets the placement of the label(s).
+        pub placement: Placement;
 
-    // Sets the margin between the label(s) and the progress bar.
-    pub fn margin(self, margin: u16) -> Self {
-        Self { margin, ..self }
-    }
+        // Sets the margin between the label(s) and the progress bar.
+        pub margin: u16;
 
-    pub fn block(self, block: Block<'a>) -> Self {
-        Self { block: block.into(), ..self }
-    }
+        pub block: Block<'a> => block.into();
 
-    pub fn style(self, style: Style) -> Self {
-        Self { style, ..self }
-    }
+        pub style: Style;
 
-    /// Sets the style of the contained progress bar.
-    pub fn bar_style(self, bar_style: Style) -> Self {
-        Self { bar_style, ..self }
+        /// Sets the style of the contained progress bar.
+        pub bar_style: Style
     }
 
     fn draw_left(&self, pos: Span, max: Span, area: Rect, buf: &mut Buffer) -> Rect {

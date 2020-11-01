@@ -1,8 +1,11 @@
-use tui::{
-    style::Style,
-    layout::Rect,
-    buffer::Buffer,
-    widgets::{Block, Widget}
+use {
+    builder::builder_methods,
+    tui::{
+        style::Style,
+        layout::Rect,
+        buffer::Buffer,
+        widgets::{Block, Widget}
+    }
 };
 
 /// A customisable progress bar.
@@ -15,34 +18,34 @@ pub struct ProgressBar<'a, S> {
 }
 
 impl <'a, S: AsRef<[char]>> ProgressBar<'a, S> {
-    /// Sets the symbols this `ProgressBar` uses.
-    /// 
-    /// `ProgressBar`s support drawing different symbols to fill
-    /// a cell depending on completion, which can make it look smoother.
-    /// The symbols should be in ascending "fullness". So if you wanted
-    /// to, for example, use [Block Elements](https://en.wikipedia.org/wiki/Block_Elements),
-    /// you'd want to order them like this:
-    ///
-    /// ```ignore
-    /// .symbols(['▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'])
-    /// ```
-    pub fn symbols(self, symbols: S) -> Self {
-        Self { symbols, ..self }
+    pub fn labeled<T>() -> super::Labeled<'a, T, S>
+    where
+        T: Default,
+        S: Default
+    {
+        <_>::default()
     }
 
-    /// Sets the progress of this bar (0 - 1).
-    /// Will be clamped automatically.
-    pub fn progress(self, progress: f32) -> Self {
-        let progress = progress.min(1.).max(0.);
-        Self { progress, ..self }
-    }
+    builder_methods! {
+        /// Sets the symbols this `ProgressBar` uses.
+        /// 
+        /// `ProgressBar`s support drawing different symbols to fill
+        /// a cell depending on completion, which can make it look smoother.
+        /// The symbols should be in ascending "fullness". So if you wanted
+        /// to, for example, use [Block Elements](https://en.wikipedia.org/wiki/Block_Elements),
+        /// you'd want to order them like this:
+        ///
+        /// ```ignore
+        /// .symbols(['▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'])
+        /// ```
+        pub symbols: S;
 
-    pub fn block(self, block: Block<'a>) -> Self {
-        Self { block: block.into(), ..self }
-    }
+        /// Sets the progress of this bar (0 - 1).
+        /// Will be clamped automatically.
+        pub progress: f32 => progress.min(1.).max(0.);
 
-    pub fn style(self, style: Style) -> Self {
-        Self { style, ..self }
+        pub block: Block<'a> => block.into();
+        pub style: Style
     }
 }
 
