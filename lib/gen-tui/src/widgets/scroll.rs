@@ -1,117 +1,81 @@
 use {
-    std::time::{Instant, Duration},
+    crate::{
+        layout::RectExt,
+        buffer::BufferExt,
+    },
     tui::{
-        text::{Spans, StyledGrapheme},
         layout::Rect,
         buffer::Buffer,
-        widgets::{Block, StatefulWidget}
+        widgets::{Widget, StatefulWidget}
     }
 };
 
-/// Text that scrolls horizontally to fit into a limited amount of space.
-#[derive(Default)]
-pub struct ScrollToFit<'a> {
-    spans: Spans<'a>,
-    interval: Duration,
-    block: Option<Block<'a>>
+/// Wraps a widget and makes it scrollable by rendering it to an
+/// intermediate buffer first.
+pub struct Scrollable<W> {
+    widget: W,
+    x: u16,
+    y: u16
 }
 
-impl <'a> ScrollToFit<'a> {
-    pub fn spans(self, spans: impl Into<Spans<'a>>) -> Self {
-        Self { spans: spans.into(), ..self }
-    }
-
-    /// Sets the interval between scrolling one character.
-    pub fn interval(self, interval: Duration) -> Self {
-        Self { interval, ..self }
-    }
-
-    pub fn block(self, block: Block<'a>) -> Self {
-        Self { block: block.into(), ..self }
-    }
-}
-
-pub struct ScrollToFitState {
-    pos: usize,
-    last_scroll: Instant
-}
-
-impl Default for ScrollToFitState {
-    fn default() -> Self {
-        ScrollToFitState {
-            pos: 0,
-            last_scroll: Instant::now()
+impl <W> Scrollable<W> {
+    pub fn new(widget: W) -> Self {
+        Scrollable {
+            widget,
+            x: 0,
+            y: 0
         }
     }
+
+    pub fn scroll(self, x: u16, y: u16) -> Self {
+        self.scroll_x(x)
+            .scroll_y(y)
+    }
+
+    pub fn scroll_x(self, x: u16) -> Self {
+        Self { x, ..self }
+    }
+
+    pub fn scroll_y(self, y: u16) -> Self {
+        Self { y, ..self }
+    }
+
+    fn render_with<F>(self, mut f: F, area: Rect, buf: &mut Buffer)
+    where F: FnMut(W, Rect, &mut Buffer) {
+        if self.x + self.y == 0 {
+            return f(self.widget, area, buf)
+        }
+
+        let expanded = area
+            .grow_right(self.x)
+            .grow_bottom(self.y);
+        
+        let mut intermediate = Buffer::empty(expanded);
+
+        f(self.widget, expanded, &mut intermediate);
+
+        let view = expanded
+            .shrink_left(self.x)
+            .shrink_top(self.y);
+
+        buf.copy_from(area, intermediate, view)
+    }
 }
 
-const SPACES: usize = 3;
+impl <W: Widget> Widget for Scrollable<W> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        self.render_with(W::render, area, buf)
+    }
+}
 
-impl <'a> StatefulWidget for ScrollToFit<'a> {
-    type State = ScrollToFitState;
+impl <W: StatefulWidget> StatefulWidget for Scrollable<W> {
+    type State = W::State;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let area = self
-            .block
-            .map_or(area, super::rendered_block(area, buf));
-
-        let text_width = self.spans.width();
-
-        if text_width <= area.width as usize {
-            // no scrolling necessary
-            buf.set_spans(area.x, area.y, &self.spans, text_width as _);
-            return
-        }
-
-        let since_last = state
-            .last_scroll
-            .elapsed();
-
-        if since_last >= self.interval {
-            if state.pos + 1 == text_width + SPACES {
-                state.pos = 0
-            } else {
-                state.pos += 1
-            }
-
-            state.last_scroll = Instant::now();
-        }
-
-        draw_spans(self.spans, area, state.pos, buf)
+        self.render_with(
+            |w, area, buf| w.render(area, buf, state),
+            area,
+            buf
+        )
     }
-}
-
-fn draw_spans(spans: Spans, area: Rect, start: usize, buf: &mut Buffer) {
-    repeated_graphemes(&spans)
-        .skip(start)
-        .take(area.width as _)
-        .enumerate()
-        .for_each(|(offs, grapheme)| draw_grapheme(grapheme, area, offs, buf))
-}
-
-type Grapheme<'a> = StyledGrapheme<'a>;
-
-fn repeated_graphemes<'a>(spans: &'a Spans<'a>) -> impl Iterator<Item = Grapheme<'a>>  {
-    graphemes(&spans)
-        .chain(three_spaces())
-        .chain(graphemes(&spans))
-}
-
-fn graphemes<'a>(Spans(spans): &'a Spans<'a>) -> impl Iterator<Item = Grapheme<'a>> {
-    spans
-        .iter()
-        .flat_map(|span| span.styled_graphemes(<_>::default()))
-}
-
-fn three_spaces<'a>() -> impl Iterator<Item = Grapheme<'a>> {
-    std::iter::repeat(Grapheme {
-        symbol: " ",
-        style: <_>::default()
-    }).take(SPACES)
-}
-
-fn draw_grapheme(grapheme: Grapheme, area: Rect, offset: usize, buf: &mut Buffer) {
-    buf.get_mut(area.x + offset as u16, area.y)
-        .set_symbol(grapheme.symbol)
-        .set_style(grapheme.style);
 }
