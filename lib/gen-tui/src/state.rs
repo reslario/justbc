@@ -7,9 +7,19 @@ use {
     }
 };
 
-#[derive(Default, Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Stateful<W: StatefulWidget> {
     state: W::State
+}
+
+impl <W> Default for Stateful<W>
+where
+    W: StatefulWidget,
+    W::State: Default
+{
+    fn default() -> Self {
+        Stateful { state: <_>::default() }
+    }
 }
 
 impl <W: StatefulWidget> Stateful<W> {
