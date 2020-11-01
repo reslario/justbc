@@ -88,7 +88,8 @@ fn parse_track(mut scraper: impl Scrape, buf: BufMut) -> Result<Track> {
 fn parse_label(mut scraper: impl Scrape, buf: BufMut) -> Result<Label> {
     Ok(Label {
         heading: heading(&mut scraper, buf)?,
-        sub_heading: sub_heading(scraper, buf)
+        sub_heading: sub_heading(&mut scraper, buf),
+        tags:  tags(scraper, buf).transpose()?,
     })
 }
 

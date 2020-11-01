@@ -64,7 +64,8 @@ pub struct Artist {
 #[derive(Debug)]
 pub struct Label {
     pub heading: Heading,
-    pub sub_heading: Option<String>
+    pub sub_heading: Option<String>,
+    pub tags: Option<Tags>
 }
 
 #[derive(Debug)]
