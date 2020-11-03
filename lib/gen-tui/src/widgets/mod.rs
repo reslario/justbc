@@ -1,11 +1,13 @@
 pub mod progress;
 mod scroll;
 mod fit;
+mod spinner;
 
 pub use {
     fit::*,
     scroll::*,
     progress::ProgressBar,
+    spinner::*,
 };
 
 fn rendered_block(area: tui::layout::Rect, buf: &mut tui::buffer::Buffer)
