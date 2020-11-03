@@ -1,10 +1,12 @@
 pub mod progress;
 mod scroll;
 mod fit;
+mod input;
 mod spinner;
 
 pub use {
     fit::*,
+    input::*,
     scroll::*,
     progress::ProgressBar,
     spinner::*,

@@ -4,3 +4,4 @@ pub mod widgets;
 pub mod state;
 pub mod layout;
 pub mod buffer;
+pub mod style;
