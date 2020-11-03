@@ -1,4 +1,5 @@
 use {
+    crate::layout::RectExt,
     tui::{
         layout::Rect,
         buffer::{Cell, Buffer}
@@ -7,6 +8,8 @@ use {
 
 pub trait BufferExt: Sized {
     fn copy_from(&mut self, area: Rect, other: Self, other_area: Rect);
+    fn try_get(&self, x: u16, y: u16) -> Option<&Cell>;
+    fn try_get_mut(&mut self, x: u16, y: u16) -> Option<&mut Cell>;
 }
 
 impl BufferExt for Buffer {
@@ -18,6 +21,22 @@ impl BufferExt for Buffer {
         cells_mut(self, area)
             .zip(cells_mut(&mut other, other_area))
             .for_each(|(a, b)| std::mem::swap(a, b))
+    }
+
+    fn try_get(&self, x: u16, y: u16) -> Option<&Cell> {
+        if self.area.contains(x, y) {
+            self.get(x, y).into()
+        } else {
+            None 
+        }
+    }
+
+    fn try_get_mut(&mut self, x: u16, y: u16) -> Option<&mut Cell> {
+        if self.area.contains(x, y) {
+            self.get_mut(x, y).into()
+        } else {
+            None 
+        }
     }
 }
 
