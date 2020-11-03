@@ -3,11 +3,27 @@ pub trait RectExt: Sized + Copy {
     fn shrink_right(self, amount: u16) -> Self;
     fn shrink_top(self, amount: u16) -> Self;
     fn shrink_bottom(self, amount: u16) -> Self;
+
+    #[inline]
+    fn shrink(self, margin: Margin) -> Self {
+        self.shrink_left(margin.left)
+            .shrink_right(margin.right)
+            .shrink_top(margin.top)
+            .shrink_bottom(margin.bottom)
+    }
     
     fn grow_left(self, amount: u16) -> Self;
     fn grow_right(self, amount: u16) -> Self;
     fn grow_top(self, amount: u16) -> Self;
     fn grow_bottom(self, amount: u16) -> Self;
+
+    #[inline]
+    fn grow(self, margin: Margin) -> Self {
+        self.grow_left(margin.left)
+            .grow_right(margin.right)
+            .grow_top(margin.top)
+            .grow_bottom(margin.bottom)
+    }
 
     fn from_left(self, width: u16) -> Self;
     fn from_right(self, width: u16) -> Self;
@@ -146,4 +162,12 @@ fn grow_adjust(coord: u16, size: u16, amount: u16) -> (u16, u16) {
         coord.saturating_sub(amount),
         size.saturating_add(amount)
     )
+}
+
+#[derive(Default, Copy, Clone, PartialEq, Eq)]
+pub struct Margin {
+    pub left: u16,
+    pub right: u16,
+    pub top: u16,
+    pub bottom: u16
 }
