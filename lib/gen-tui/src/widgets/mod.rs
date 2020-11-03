@@ -3,32 +3,44 @@ mod scroll;
 mod fit;
 mod input;
 mod spinner;
+mod container;
 
 pub use {
     fit::*,
     input::*,
     scroll::*,
-    progress::ProgressBar,
     spinner::*,
+    container::*,
+    progress::ProgressBar
 };
 
-fn rendered_block(area: tui::layout::Rect, buf: &mut tui::buffer::Buffer)
+macro_rules! widget_ext_fns {
+    () => {
+        /// Makes this widget scrollable.
+        fn scrollable(self) -> Scrollable<Self> {
+            Scrollable::new(self)
+        }
+    
+        /// Wraps this widget in a container.
+        fn with_container<'a>(self) -> Container<'a, Self> {
+            Container::new(self)
+        }
+    };
+}
+
 pub trait WidgetExt: Sized {
-    fn scrollable(self) -> Scrollable<Self> {
-        Scrollable::new(self)
-    }
+    widget_ext_fns!();
 }
 
 impl <W: tui::widgets::Widget> WidgetExt for W {}
 
 pub trait StatefulWidgetExt: Sized {
-    fn scrollable(self) -> Scrollable<Self> {
-        Scrollable::new(self)
-    }
+    widget_ext_fns!();
 }
 
 impl <W: tui::widgets::StatefulWidget> StatefulWidgetExt for W {}
 
+fn rendered_block(area: tui::layout::Rect, buf: &mut tui::buffer::Buffer)
 -> impl FnMut(tui::widgets::Block) -> tui::layout::Rect + '_ {
     move |block| {
         let inner = block.inner(area);
