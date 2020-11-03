@@ -26,6 +26,8 @@ pub trait RectExt: Sized + Copy {
 
     fn split_ratio_x(self, ratio: f32) -> (Self, Self);
     fn split_ratio_y(self, ratio: f32) -> (Self, Self);
+
+    fn contains(self, x: u16, y: u16) -> bool;
 }
 
 impl RectExt for tui::layout::Rect {
@@ -121,6 +123,14 @@ impl RectExt for tui::layout::Rect {
         let y = f32::from(self.height) * ratio;
 
         self.split_y(y.round() as u16)
+    }
+
+    #[inline]
+    fn contains(self, x: u16, y: u16) -> bool {
+        x >= self.left()
+            && x < self.right()
+            && y >= self.top()
+            && y < self.bottom()
     }
 }
 
