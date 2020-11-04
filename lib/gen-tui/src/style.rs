@@ -65,3 +65,59 @@ fn is_bright(r: u8, g: u8, b: u8) -> bool {
         + 0.0722 * f32::from(b)
         >= 128.
 }
+
+pub trait StyleExt: Sized + Copy {
+    fn bold(self) -> Self;
+    fn dim(self) -> Self;
+    fn italic(self) -> Self;
+    fn underlined(self) -> Self;
+    fn slow_blink(self) -> Self;
+    fn rapid_blink(self) -> Self;
+    fn reversed(self) -> Self;
+    fn hidden(self) -> Self;
+    fn crossed_out(self) -> Self;
+}
+
+macro_rules! add_mod {
+    ($to:ident, $name:ident) => {
+        $to.add_modifier(tui::style::Modifier::$name)
+    };
+}
+
+impl StyleExt for tui::style::Style {
+    fn bold(self) -> Self {
+        add_mod!(self, BOLD)
+    }
+
+    fn dim(self) -> Self {
+        add_mod!(self, DIM)
+    }
+
+    fn italic(self) -> Self {
+        add_mod!(self, ITALIC)
+    }
+
+    fn underlined(self) -> Self {
+        add_mod!(self, UNDERLINED)
+    }
+
+    fn slow_blink(self) -> Self {
+        add_mod!(self, SLOW_BLINK)
+    }
+
+    fn rapid_blink(self) -> Self {
+        add_mod!(self, RAPID_BLINK)
+    }
+
+    fn reversed(self) -> Self {
+        add_mod!(self, REVERSED)
+    }
+
+    fn hidden(self) -> Self {
+        add_mod!(self, HIDDEN)
+    }
+
+    fn crossed_out(self) -> Self {
+        add_mod!(self, CROSSED_OUT)
+    }
+}

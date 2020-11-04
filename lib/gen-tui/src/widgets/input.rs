@@ -1,14 +1,14 @@
 use {
     builder::builder_methods,
     crate::{
-        style::ColorExt,
-        layout::RectExt
+        layout::RectExt,
+        style::{ColorExt, StyleExt}
     },
     tui::{
         text::Span,
-        style::{Style, Color, Modifier},
         layout::Rect,
         buffer::Buffer,
+        style::{Style, Color},
         widgets::{StatefulWidget, Block}
     }
 };
@@ -142,7 +142,7 @@ impl <'a> StatefulWidget for TextInput<'a> {
 
         buf.set_style(
             Rect { height: 1, ..area },
-            self.style.add_modifier(Modifier::UNDERLINED)
+            self.style.underlined()
         );
 
         let (x, y) = buf.set_span(area.x, area.y, &before.into(), area.width);
