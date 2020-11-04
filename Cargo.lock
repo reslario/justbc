@@ -50,6 +50,7 @@ name = "bandcamp"
 version = "0.1.0"
 dependencies = [
  "bandcamp-api",
+ "bc-tui",
  "crossterm 0.18.0",
  "gen-tui",
  "play",
@@ -81,6 +82,12 @@ checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
 [[package]]
 name = "bc-tui"
 version = "0.1.0"
+dependencies = [
+ "bandcamp-api",
+ "builder",
+ "gen-tui",
+ "tui",
+]
 
 [[package]]
 name = "bindgen"
@@ -119,6 +126,10 @@ dependencies = [
  "regex-automata",
  "serde",
 ]
+
+[[package]]
+name = "builder"
+version = "0.1.0"
 
 [[package]]
 name = "bumpalo"
@@ -541,6 +552,7 @@ dependencies = [
 name = "gen-tui"
 version = "0.1.0"
 dependencies = [
+ "builder",
  "tui",
 ]
 

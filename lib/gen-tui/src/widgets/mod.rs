@@ -14,6 +14,12 @@ pub use {
     progress::ProgressBar
 };
 
+use tui::{
+    widgets,
+    layout::Rect,
+    buffer::Buffer
+};
+
 macro_rules! widget_ext_fns {
     () => {
         /// Makes this widget scrollable.
@@ -40,11 +46,11 @@ pub trait StatefulWidgetExt: Sized {
 
 impl <W: tui::widgets::StatefulWidget> StatefulWidgetExt for W {}
 
-fn rendered_block(area: tui::layout::Rect, buf: &mut tui::buffer::Buffer)
--> impl FnMut(tui::widgets::Block) -> tui::layout::Rect + '_ {
+fn rendered_block(area: Rect, buf: &mut Buffer)
+-> impl FnMut(widgets::Block) -> Rect + '_ {
     move |block| {
         let inner = block.inner(area);
-        tui::widgets::Widget::render(block, area, buf);
+        widgets::Widget::render(block, area, buf);
         inner
     }
 }
