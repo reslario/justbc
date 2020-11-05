@@ -1,15 +1,13 @@
-pub mod parse;
+#[cfg(feature = "query")]
+mod parse;
 
-use {
-    crate::{
-        pages,
-        data::{
-            Query,
-            releases::ReleaseKind
-        }
-    },
-    
+#[cfg(feature = "query")]
+use crate::{
+    pages,
+    data::Query
 };
+
+use crate::data::releases::ReleaseKind;
 
 #[derive(Debug, Clone)]
 pub struct Outlet {
@@ -18,6 +16,7 @@ pub struct Outlet {
     pub releases: Vec<Release>
 }
 
+#[cfg(feature = "query")]
 impl Query<pages::Outlet> for Outlet {
     type Err = parse::Error;
 

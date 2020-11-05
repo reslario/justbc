@@ -3,6 +3,7 @@ pub mod releases;
 pub mod search;
 pub mod outlets;
 
+#[cfg(feature = "query")]
 pub trait Query<P>: Sized {
     type Err;
 

@@ -1,5 +1,7 @@
+#[cfg(feature = "query")]
 mod parse;
 
+#[cfg(feature = "query")]
 use {
     serde::Deserialize,
     snafu::{OptionExt, ResultExt},
@@ -7,28 +9,31 @@ use {
         Scrape,
         filter::*
     },
-    std::{
-        fmt,
-        time::Duration
-    },
     crate::{
         pages,
-        data::{
-            Query,
-            common::Date
-        }
+        data::Query
     }
 };
 
-#[derive(Debug, Clone, Deserialize)]
+use {
+    crate::data::common::Date,
+    std::{
+        fmt,
+        time::Duration
+    }
+};
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "query", derive(Deserialize))]
 pub struct Release {
     pub artist: String,
-    #[serde(rename = "current")]
+    #[cfg_attr(feature = "query", serde(rename = "current"))]
     pub info: Info,
-    #[serde(rename = "trackinfo")]
+    #[cfg_attr(feature = "query", serde(rename = "trackinfo"))]
     pub tracks: Vec<Track>
 }
 
+#[cfg(feature = "query")]
 impl Query<pages::Album> for Release {
     type Err = parse::Error;
 
@@ -41,13 +46,15 @@ impl Query<pages::Album> for Release {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "query", derive(Deserialize))]
+#[cfg_attr(feature = "query", serde(rename_all = "kebab-case"))]
 pub enum ReleaseKind {
     Track,
     Album
 }
 
+#[cfg(feature = "query")]
 impl ReleaseKind {
     pub(crate) fn url_segment(&self) -> &'static str {
         match self {
@@ -63,9 +70,10 @@ impl fmt::Display for ReleaseKind {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "query", derive(Deserialize))]
 pub struct Info {
-    #[serde(rename = "type")]
+    #[cfg_attr(feature = "query", serde(rename = "type"))]
     pub kind: ReleaseKind,
     pub title: String,
     pub about: Option<String>,
@@ -73,16 +81,18 @@ pub struct Info {
     pub release_date: Date
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "query", derive(Deserialize))]
 pub struct Track {
     pub title: String,
     pub file: File,
-    #[serde(deserialize_with = "parse::f32_duration")]
+    #[cfg_attr(feature = "query", serde(deserialize_with = "parse::f32_duration"))]
     pub duration: Duration
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "query", derive(Deserialize))]
+#[cfg_attr(feature = "query", serde(rename_all = "kebab-case"))]
 pub struct File {
     pub mp3_128: String
 }

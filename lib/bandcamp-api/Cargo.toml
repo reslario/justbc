@@ -9,12 +9,16 @@ name = "bench"
 harness = false
 
 [dependencies]
-reqwest = { version = "0.10.8", features = ["blocking"] }
-serde = { version = "1.0.117", features = ["derive"] }
-serde_json = "1.0.59"
-snafu = "0.6.9"
-bytes = "0.5.6"
-scrape = { path = "../scrape" }
+reqwest = { version = "0.10.8", features = ["blocking"], optional = true }
+serde = { version = "1.0.117", features = ["derive"], optional = true }
+serde_json = { version = "1.0.59", optional = true }
+snafu = { version = "0.6.9", optional = true }
+bytes = { version =  "0.5.6", optional = true }
+scrape = { path = "../scrape", optional = true }
 
 [dev-dependencies]
 criterion = "0.3.3"
+
+[features]
+default = ["query"]
+query = ["reqwest", "serde", "serde_json", "snafu", "bytes", "scrape"]

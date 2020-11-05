@@ -1,5 +1,7 @@
+#[cfg(feature = "query")]
 mod parse;
 
+#[cfg(feature = "query")]
 use {
     snafu::ResultExt,
     scrape::{
@@ -8,22 +10,23 @@ use {
     },
     crate::{
         pages,
-        data::{
-            Query,
-            common::Date
-        }
+        data::Query
     }
 };
+
+use crate::data::common::Date;
 
 #[derive(Debug)]
 pub struct Search {
     pub results: Vec<SearchResult>
 }
 
+#[cfg(feature = "query")]
 impl Search {
     const PER_PAGE: usize = 18;
 }
 
+#[cfg(feature = "query")]
 impl Query<pages::Search> for Search {
     type Err = parse::Error;
 

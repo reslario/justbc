@@ -1,6 +1,9 @@
 pub mod data;
+
+#[cfg(feature = "query")]
 pub mod pages;
 
+#[cfg(feature = "query")]
 use {
     pages::Page,
     scrape::Scraper,
@@ -9,6 +12,7 @@ use {
     snafu::{Snafu, ResultExt}
 };
 
+#[cfg(feature = "query")]
 #[derive(Debug, Snafu)]
 pub enum QueryError<DE>
 where DE: std::fmt::Display + snafu::Error + 'static {
@@ -18,12 +22,15 @@ where DE: std::fmt::Display + snafu::Error + 'static {
     Data { source: DE }
 }
 
+#[cfg(feature = "query")]
 pub type QueryResult<T, DE> = Result<T, QueryError<DE>>;
 
+#[cfg(feature = "query")]
 pub struct Api {
     client: Client
 }
 
+#[cfg(feature = "query")]
 impl Api {
     pub fn new() -> Api {
         Api::with_client(Client::new())

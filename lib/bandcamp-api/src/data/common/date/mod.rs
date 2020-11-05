@@ -1,3 +1,4 @@
+#[cfg(feature = "query")]
 pub mod parse;
 
 use std::{
@@ -63,6 +64,7 @@ pub enum Month {
 impl Month {
     const SHORT_LEN: usize = 3;
 
+    #[cfg(feature = "query")]
     const ALL: [Month; 12] = [
         Month::January,
         Month::February,
@@ -78,6 +80,7 @@ impl Month {
         Month::December
     ];
 
+    #[cfg(feature = "query")]
     fn iter() -> impl Iterator<Item = Month> {
         Month::ALL.iter().cloned()
     }
@@ -115,6 +118,7 @@ impl Month {
         &self.long()[..Month::SHORT_LEN]
     }
 
+    #[cfg(feature = "query")]
     fn matches_str(self, s: &str) -> bool {
         if let Some(rest) = s.strip_prefix(self.short()) {
             rest.is_empty() || rest == &self.long()[Month::SHORT_LEN..]
