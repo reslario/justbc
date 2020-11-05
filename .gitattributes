@@ -2,3 +2,5 @@
 
 * text=auto eol=lf
 *.rs normalise
+
+lib/bandcamp-api/benches/search.html linguist-vendored
