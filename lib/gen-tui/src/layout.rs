@@ -171,3 +171,17 @@ pub struct Margin {
     pub top: u16,
     pub bottom: u16
 }
+
+macro_rules! dirs {
+    ($($dir:ident),+) => {
+        $(
+            pub fn $dir($dir: u16) -> Margin {
+                Margin { $dir, ..<_>::default() }
+            }
+        )+
+    };
+}
+
+impl Margin {
+    dirs!(left, right, top, bottom);
+}
