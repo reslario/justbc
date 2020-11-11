@@ -1,0 +1,43 @@
+pub mod binds;
+pub mod keys;
+
+pub use keys::Key;
+
+use {
+    crossterm::event,
+    serde::{Serialize, Deserialize}
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Command {
+    FocusRelease,
+    FocusNav,
+    FocusSearchBar,
+    TabLibrary,
+    TabExplore,
+    CycleTabs,
+    SelectionUp,
+    SelectionDown,
+    ScrollUp,
+    ScrollDown,
+    PageLeft,
+    PageRight,
+    Confirm,
+    VolumeUp,
+    VolumeDown,
+    TogglePlay,
+    NextTrack,
+    PrevTrack
+}
+
+pub fn keys() -> impl Iterator<Item = Key> {
+    std::iter::from_fn(|| event::poll(<_>::default()).ok())
+        .take_while(<_>::clone)
+        .filter_map(|_| event::read().ok())
+        .filter_map(|event| match event {
+            event::Event::Key(event) => event.into(),
+            _ => None
+        })
+        .map(<_>::into)
+}
