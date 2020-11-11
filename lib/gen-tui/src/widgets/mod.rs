@@ -1,16 +1,16 @@
 pub mod progress;
 mod scroll;
 mod fit;
-mod input;
+pub mod input;
 mod spinner;
 mod container;
 
 pub use {
     fit::*,
-    input::*,
     scroll::*,
     spinner::*,
     container::*,
+    self::input::{TextInput, TextInputState},
     progress::ProgressBar
 };
 

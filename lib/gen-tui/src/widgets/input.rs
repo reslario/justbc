@@ -68,26 +68,30 @@ impl TextInputState {
         self.cursor += ch.len_utf8();
     }
 
-    fn delete_current(&mut self) {
-        self.text.remove(self.cursor);
+    fn delete_current(&mut self) -> char {
+        self.text.remove(self.cursor)
     }
 
-    pub fn delete_left(&mut self) {
+    pub fn delete_left(&mut self) -> Option<char> {
         let old = self.cursor;
         self.decr_cursor();
 
         if self.cursor != old {
            self.delete_current()
+            .into()
+        } else {
+            None
         }
     }
 
-    pub fn delete_right(&mut self) {
-        let old = self.cursor;
-        self.incr_cursor();
-
-        if self.cursor != old {
-            self.delete_left()
+    pub fn delete_right(&mut self) -> Option<char> {
+        if self.cursor != self.text.len() {
+            self.delete_current()
+                .into()
+        } else {
+            None
         }
+        
     }
 
     pub fn focus(&mut self) {
@@ -118,6 +122,93 @@ impl TextInputState {
         self.text[self.offset..]
             .split_at(self.cursor - self.offset)
     }
+}
+
+/// Input handling using the `ìnput` crate.
+/// Requires the `handle-input` feature.
+#[cfg(feature = "handle-input")]
+impl TextInputState {
+    fn left_char(&self) -> Option<char> {
+        self.text[..self.cursor]
+            .chars()
+            .next_back()
+    }
+
+    fn right_char(&self) -> Option<char> {
+        self.text[self.cursor..]
+            .chars()
+            .next()
+    }
+
+    fn delete_section_left(&mut self) {
+        let pred = match self.predicate(Self::left_char) {
+            Some(p) => p,
+            None => return
+        };
+
+        let idx = self.text[..self.cursor]
+            .find(pred)
+            .unwrap_or_default();
+
+        self.text.replace_range(idx..self.cursor, "");
+        self.cursor = idx;
+    }
+
+    fn delete_section_right(&mut self) {
+        let pred = match self.predicate(Self::right_char) {
+            Some(p) => p,
+            None => return
+        };
+
+        let end = self.text[self.cursor..]
+            .find(|c| !pred(c))
+            .map(|idx| self.cursor + idx)
+            .unwrap_or(self.text.len());
+
+        self.text.replace_range(self.cursor..end, "");
+    }
+
+    fn predicate(&self, ch: fn(&Self) -> Option<char>) -> Option<fn(char) -> bool> {
+        ch(self).map(|ch| if ch.is_whitespace() {
+            char::is_whitespace
+        } else if ch.is_ascii_punctuation() {
+            |c: char| c.is_ascii_punctuation()
+        } else {
+            |ch| !is_word_boundary(ch)
+        })
+    }
+
+    /// Handles the given key and optionally returns a [Message](Message)
+    pub fn handle_key(&mut self, key: input::Key) -> Option<Message> {
+        use input::keys::KeyCode::*;
+
+        match key.code {
+            Enter => return Message::Confirm.into(),
+            Esc => return Message::Cancel.into(),
+            Char(c) => self.insert(c),
+            Backspace if key.ctrl() => self.delete_section_left(),
+            Backspace => { self.delete_left(); },
+            Delete if key.ctrl() => self.delete_section_right(),
+            Delete => { self.delete_right(); },
+            Left => self.decr_cursor(),
+            Right => self.incr_cursor(),
+            _ => {}
+        }
+
+        None
+    }
+}
+
+#[cfg(feature = "handle-input")]
+fn is_word_boundary(ch: char) -> bool {
+    ch.is_whitespace() || ch.is_ascii_punctuation()
+}
+
+#[cfg(feature = "handle-input")]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum Message {
+    Confirm,
+    Cancel
 }
 
 fn width(s: &str) -> usize {
