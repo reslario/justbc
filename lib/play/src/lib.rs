@@ -75,6 +75,13 @@ where
         self.mut_track(Track::pause)
     }
 
+    /// Returns whether the player is paused.
+    /// Returns `false` if the player is empty.
+    pub fn is_paused(&self) -> bool {
+        self.ref_track(Track::is_paused)
+            .unwrap_or_default()
+    }
+
     /// Resumes playback of a paused sound, if there is one.
     pub fn resume(&mut self) {
         self.mut_track(Track::play)
@@ -107,11 +114,21 @@ where
         Ok(())
     }
 
+    /// Gets the volume of the player.
+    pub fn volume(&self) -> f32 {
+        self.volume
+    }
+
     /// Sets the volume of the player, which persists between
     /// playing different sounds.
     pub fn set_volume(&mut self, volume: f32) {
         self.volume = volume;
         self.mut_track(|track| track.set_volume(volume))
+    }
+
+    /// Returns whether the player is empty.
+    pub fn is_empty(&self) -> bool {
+        self.current.is_none()
     }
 }
 

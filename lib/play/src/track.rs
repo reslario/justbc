@@ -51,6 +51,11 @@ where
         self.last_play = None;
     }
 
+    /// Returns whether the track is paused.
+    pub fn is_paused(&self) -> bool {
+        self.sink.is_paused()
+    }
+
     /// Returns how long this track has been playing.
     pub fn elapsed(&self) -> Duration {
         self.elapsed + self
