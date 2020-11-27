@@ -8,7 +8,7 @@ mod scraper;
 pub mod filter;
 pub mod extract;
 
-pub use{
+pub use {
     scraper::*,
     quick_xml::events::Event
 };

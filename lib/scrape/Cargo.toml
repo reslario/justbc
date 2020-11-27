@@ -5,4 +5,4 @@ authors = ["reslario <reslario.code@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-quick-xml = "0.18.1"
+quick-xml = "0.20.0"
