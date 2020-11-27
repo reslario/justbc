@@ -26,6 +26,7 @@ pub struct PlayBar<'a> {
     artist: &'a str,
     track: &'a Track,
     elapsed: Time,
+    volume: f32,
     style: Style,
     bar_style: Style
 }
@@ -36,6 +37,7 @@ impl <'a> PlayBar<'a> {
             artist,
             track,
             elapsed: <_>::default(),
+            volume: 1.,
             style: <_>::default(),
             bar_style: <_>::default()
         }
@@ -44,6 +46,7 @@ impl <'a> PlayBar<'a> {
     builder_methods! {
         pub elapsed: impl Into<Time> => elapsed.into();
         pub bar_style: Style;
+        pub volume: f32;
         pub style: Style
     }
 
@@ -67,6 +70,24 @@ impl <'a> PlayBar<'a> {
         area.shrink_left(width)
     }
 
+    fn draw_volume(&self, area: Rect, buf: &mut Buffer) -> Rect {
+        const WIDTH: u16 = 7;
+
+        let text = format!(
+            "{} {:>3}%",
+            speaker(self.volume),
+            f32::round(self.volume * 100.)
+        );
+
+        let Rect { x, y, .. } = area
+            .from_right(WIDTH)
+            .shrink_top(1);
+
+        buf.set_span(x, y, &Span::styled(text, self.style), WIDTH);
+
+        area.shrink_right(WIDTH)
+    }
+
     fn draw_bar(&self, area: Rect, buf: &mut Buffer) {
         use tui::widgets::Widget;
 
@@ -88,6 +109,16 @@ impl <'a> PlayBar<'a> {
     }
 }
 
+fn speaker(volume: f32) -> char {
+    if volume > 0.49 {
+        '🔊'
+    } else if volume < 0.01 {
+        '🔈'
+    } else {
+        '🔉'
+    }
+}
+
 #[derive(Default)]
 pub struct PlayBarState {
     artist: ScrollToFitState,
@@ -99,6 +130,7 @@ impl <'a> StatefulWidget for PlayBar<'a> {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let area = self.draw_track_info(area, buf, state);
+        let area = self.draw_volume(area, buf);
         self.draw_bar(area, buf);
     }
 }
