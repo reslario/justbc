@@ -106,13 +106,9 @@ impl <'a> ReleaseView<'a> {
 
         let height = track_list.len();
 
-        let highlight_symbol = state
-            .highlight_symbol()
-            .unwrap_or("  ");
-
         List::new(track_list)
             .style(self.style)
-            .highlight_symbol(highlight_symbol)
+            .highlight_symbol(state.highlight_symbol())
             .render(area, buf, &mut state.track_list);
 
         area.shrink_top(height as _)
@@ -151,7 +147,6 @@ impl <'a> ReleaseView<'a> {
             .info
             .credits
             .as_deref()
-            .map(<_>::into)
     }
 }
 
@@ -216,30 +211,63 @@ pub struct ReleaseViewState {
     playing: Option<usize>
 }
 
+impl std::ops::Deref for ReleaseViewState {
+    type Target = ListState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.track_list
+    }
+}
+
+impl std::ops::DerefMut for ReleaseViewState {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.track_list
+    }
+}
+
 impl ReleaseViewState {
     pub fn play(&mut self, track: usize) {
         self.playing.replace(track);
     }
 
-    pub fn select(&mut self, track: usize) {
-        self.track_list.select(track.into());
+    pub fn playing(&self) -> Option<usize> {
+        self.playing
     }
 
-    fn highlight_symbol(&self) -> Option<&'static str> {
-        if self.track_list.selected()? == self.playing? {
+    pub fn selection_down(&mut self) {
+        let new = self
+            .selected()
+            .map(|sel| sel + 1)
+            .unwrap_or_default();
+
+        self.select(new.into())
+    }
+
+    pub fn selection_up(&mut self) {
+        let new = self
+            .selected()
+            .map(|sel| sel - 1);
+
+        self.select(new)
+    }
+
+    fn highlight_symbol(&self) -> &'static str {
+        match (self.track_list.selected(), self.playing) {
             // all hail the phoenician number two
-            "𐤚 "
-        } else {
-            "▶ "
-        }.into()
+            (Some(s), Some(p)) if s == p => "𐤚⠀",
+            (Some(_), _) => "▶ ",
+            _ => "  "
+        }
     }
 
     fn highlight_playing(&self, tracks: &mut Vec<ListItem>, style: Style) {
+        use std::mem;
+
         if let Some(index) = self.playing {
-            let playing = tracks.swap_remove(index);
-            tracks.push(playing.style(style));
-            let last = tracks.len() - 1;
-            tracks.swap(index, last)
+            let mut playing = ListItem::new(Text { lines: vec![] });
+            
+            mem::swap(&mut tracks[index], &mut playing);
+            mem::swap(&mut tracks[index], &mut playing.style(style))
         }
     }
 }
