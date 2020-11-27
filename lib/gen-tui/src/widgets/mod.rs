@@ -17,9 +17,11 @@ pub use {
 };
 
 use tui::{
+    Frame,
     widgets,
     layout::Rect,
-    buffer::Buffer
+    buffer::Buffer,
+    backend::Backend
 };
 
 macro_rules! widget_ext_fns {
@@ -40,14 +42,22 @@ macro_rules! widget_ext_fns {
     };
 }
 
-pub trait WidgetExt: Sized {
+pub trait WidgetExt: Sized + widgets::Widget {
     widget_ext_fns!();
+
+    fn render_to(self, frame: &mut Frame<impl Backend>, area: Rect) {
+        frame.render_widget(self, area)
+    }
 }
 
 impl <W: tui::widgets::Widget> WidgetExt for W {}
 
-pub trait StatefulWidgetExt: Sized {
+pub trait StatefulWidgetExt: Sized + widgets::StatefulWidget {
     widget_ext_fns!();
+
+    fn render_to(self, frame: &mut Frame<impl Backend>, area: Rect, state: &mut Self::State) {
+        frame.render_stateful_widget(self, area, state)
+    }
 }
 
 impl <W: tui::widgets::StatefulWidget> StatefulWidgetExt for W {}
