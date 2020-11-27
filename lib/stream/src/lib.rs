@@ -123,8 +123,8 @@ where R: Read + Send + Sync + 'static {
         if ready < buf.len() {
             self.fetch(buf.len() - ready)?;
             self.pre_fetch(REFILL)
-        } else if ready <= REFILL {
-            self.pre_fetch(REFILL)
+        } else if BUF_SIZE - ready <= CHUNK {
+            self.pre_fetch(CHUNK)
         }
 
         Ok(self.buf.fill(buf))
