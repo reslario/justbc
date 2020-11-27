@@ -4,14 +4,16 @@ mod fit;
 pub mod input;
 mod spinner;
 mod container;
+mod clear;
 
 pub use {
     fit::*,
+    clear::*,
     scroll::*,
     spinner::*,
     container::*,
-    self::input::{TextInput, TextInputState},
-    progress::ProgressBar
+    progress::ProgressBar,
+    self::input::{TextInput, TextInputState}
 };
 
 use tui::{
@@ -30,6 +32,10 @@ macro_rules! widget_ext_fns {
         /// Wraps this widget in a container.
         fn with_container<'a>(self) -> Container<'a, Self> {
             Container::new(self)
+        }
+
+        fn clear_area(self) -> ClearArea<Self> {
+            ClearArea::new(self)
         }
     };
 }
