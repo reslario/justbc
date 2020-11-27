@@ -26,7 +26,9 @@ pub enum Error {
     #[snafu(display("error parsing date: {}", source))]
     ParseDate { source: date::parse::DateParseError },
     #[snafu(display("error parsing length: {}", source))]
-    ParseLength { source: LengthParseError }
+    ParseLength { source: LengthParseError },
+    #[snafu(display("error parsing url: {}", source))]
+    ParseUrl { source: url::ParseError }
 }
 
 pub(super) type Result<T> = std::result::Result<T, Error>;
@@ -114,7 +116,9 @@ fn heading(scraper: impl Scrape, buf: BufMut) -> Result<Heading> {
     Ok(Heading {
         url: a.extract(attr("href"), buf)
             .context(Read)?
-            .context(missing("heading link"))?,
+            .context(missing("heading link"))?
+            .parse()
+            .context(ParseUrl)?,
         title: a.extract(text, buf)
             .context(Read)?
             .context(missing("heading title"))?

@@ -14,9 +14,12 @@ use {
     }
 };
 
-use crate::data::common::Date;
+use {
+    url::Url,
+    crate::data::common::Date
+};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Search {
     pub results: Vec<SearchResult>
 }
@@ -48,7 +51,7 @@ impl Query<pages::Search> for Search {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum SearchResult {
     Artist(Artist),
     Label(Label),
@@ -56,7 +59,18 @@ pub enum SearchResult {
     Track(Track)
 }
 
-#[derive(Debug)]
+impl SearchResult {
+    pub fn heading(&self) -> &Heading {
+        match self {
+            SearchResult::Artist(a) => &a.heading,
+            SearchResult::Label(l) => &l.heading,
+            SearchResult::Album(a) => &a.heading,
+            SearchResult::Track(t) => &t.heading
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct Artist {
     pub heading: Heading,
     pub sub_heading: Option<String>,
@@ -64,20 +78,20 @@ pub struct Artist {
     pub tags: Option<Tags>
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Label {
     pub heading: Heading,
     pub sub_heading: Option<String>,
     pub tags: Option<Tags>
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Heading {
     pub title: String,
-    pub url: String
+    pub url: Url
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Album {
     pub heading: Heading,
     pub by: String,
@@ -86,13 +100,13 @@ pub struct Album {
     pub tags: Option<Tags>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Length {
     tracks: u16,
     minutes: u16
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Track {
     pub heading: Heading,
     pub source: Source,
@@ -100,12 +114,13 @@ pub struct Track {
     pub tags: Option<Tags>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Source {
     pub from: Option<String>,
     pub by: String
 }
 
+#[derive(PartialEq, Eq)]
 pub struct Tags {
     pub string: String,
     pub indices: Vec<usize>

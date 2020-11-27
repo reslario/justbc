@@ -16,14 +16,14 @@ use {
 };
 
 use {
-    crate::data::common::Date,
+    crate::data::common::{self, Date},
     std::{
         fmt,
         time::Duration
     }
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "query", derive(Deserialize))]
 pub struct Release {
     pub artist: String,
@@ -34,10 +34,10 @@ pub struct Release {
 }
 
 #[cfg(feature = "query")]
-impl Query<pages::Album> for Release {
+impl Query<pages::Release> for Release {
     type Err = parse::Error;
 
-    fn query(mut page: pages::Album) -> Result<Self, Self::Err> {
+    fn query(mut page: pages::Release) -> Result<Self, Self::Err> {
         page.filter(tag("script"))
             .find_extract(parse::get_json, &mut vec![])
             .context(parse::Read)?
@@ -46,7 +46,7 @@ impl Query<pages::Album> for Release {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "query", derive(Deserialize))]
 #[cfg_attr(feature = "query", serde(rename_all = "kebab-case"))]
 pub enum ReleaseKind {
@@ -70,7 +70,7 @@ impl fmt::Display for ReleaseKind {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "query", derive(Deserialize))]
 pub struct Info {
     #[cfg_attr(feature = "query", serde(rename = "type"))]
@@ -78,10 +78,10 @@ pub struct Info {
     pub title: String,
     pub about: Option<String>,
     pub credits: Option<String>,
-    pub release_date: Date
+    pub release_date: Option<Date>
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "query", derive(Deserialize))]
 pub struct Track {
     pub title: String,
@@ -90,9 +90,10 @@ pub struct Track {
     pub duration: Duration
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "query", derive(Deserialize))]
 #[cfg_attr(feature = "query", serde(rename_all = "kebab-case"))]
 pub struct File {
-    pub mp3_128: String
+    #[cfg_attr(feature = "query", serde(deserialize_with = "common::parse::deserialize_url"))]
+    pub mp3_128: url::Url
 }

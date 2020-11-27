@@ -49,28 +49,31 @@ impl <'a> OutletView<'a> {
             OutletKind::Artist => symbols::ARTIST
         };
 
-        // there seems to be no way to find out how many lines
-        // a rendered paragraph takes up, so we append a line
-        // with this character in order to find it again later
-        const END: &str = "\u{180E}";
-
         let bold = |s| Span::styled(s, Style::default().bold()).into();
 
         let title = format!("{} {}", symbol, info.name);
 
         let mut text = vec![
             bold(title.as_str()),
-            " ".into(),
-            bold("About")
         ];
 
-        text.extend(info
-            .bio
-            .split('\n')
-            .filter(|s| !s.is_empty())
-            .chain(std::iter::once(END))
-            .map(<_>::into)
-        );
+        if let Some(bio) = info.bio.as_ref() {
+            text.push(" ".into());
+            text.push(bold("About"));
+
+            text.extend(bio
+                .split('\n')
+                .filter(|s| !s.is_empty())
+                .map(<_>::into)
+            );
+        }
+
+        // there seems to be no way to find out how many lines
+        // a rendered paragraph takes up, so we append a line
+        // with this character in order to find it again later
+        const END: &str = "\u{180E}";
+
+        text.push(END.into());
 
         Paragraph::new(text)
             .style(self.style)

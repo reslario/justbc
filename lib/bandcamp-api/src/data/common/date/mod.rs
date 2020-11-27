@@ -6,7 +6,7 @@ use std::{
     num::NonZeroU8
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Date {
     pub day: NonZeroU8,
     pub month: Month,

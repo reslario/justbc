@@ -7,9 +7,12 @@ use crate::{
     data::Query
 };
 
-use crate::data::releases::ReleaseKind;
+use {
+    url::Url,
+    crate::data::releases::ReleaseKind
+};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outlet {
     pub info: Info,
     pub featured: Vec<Featured>,
@@ -23,7 +26,7 @@ impl Query<pages::Outlet> for Outlet {
     fn query(mut page: pages::Outlet) -> Result<Self, Self::Err> {
         let mut buf = vec![];
         let info = parse::get_info(&mut *page, &mut buf)?;
-        let (featured, releases) = parse::get_releases(&mut *page, &mut buf)?;
+        let (featured, releases) = parse::get_releases(&mut *page, &mut buf, &info)?;
 
         Ok(Outlet {
             info,
@@ -33,11 +36,12 @@ impl Query<pages::Outlet> for Outlet {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Info {
     pub kind: OutletKind,
     pub name: String,
-    pub bio: String,
+    pub bio: Option<String>,
+    pub url: Url,
 }
 
 #[derive(Debug, Copy, PartialEq, Eq, Clone)]
@@ -46,14 +50,14 @@ pub enum OutletKind {
     Label
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReleaseInfo {
-    pub url: String,
+    pub url: Url,
     pub title: String,
     pub artist: Option<String>
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Featured(pub ReleaseInfo);
 
 impl std::ops::Deref for Featured {
@@ -64,7 +68,7 @@ impl std::ops::Deref for Featured {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Release {
     pub kind: ReleaseKind,
     pub info: ReleaseInfo

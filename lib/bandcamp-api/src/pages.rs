@@ -10,6 +10,16 @@ where
     fn url(args: &A) -> Self::Url;
 }
 
+impl <P> Page<reqwest::Url> for P
+where P: From<Scraper> + std::ops::DerefMut<Target = Scraper> {
+    type Url = String;
+
+    #[inline]
+    fn url(url: &reqwest::Url) -> Self::Url {
+        url.clone().into_string()
+    }
+} 
+
 macro_rules! impls {
     ($page:path) => {
         impl From<Scraper> for $page {
@@ -40,9 +50,9 @@ macro_rules! url {
     };
 }
 
-pub struct Album(Scraper);
+pub struct Release(Scraper);
 
-impl <'a> Page<ReleaseArgs<'a>> for Album {
+impl <'a> Page<ReleaseArgs<'a>> for Release {
     type Url = String;
 
     fn url(args: &ReleaseArgs) -> Self::Url {
@@ -55,7 +65,7 @@ impl <'a> Page<ReleaseArgs<'a>> for Album {
     }
 }
 
-impls!(Album);
+impls!(Release);
 
 pub struct ReleaseArgs<'a> {
     pub kind: crate::data::releases::ReleaseKind,

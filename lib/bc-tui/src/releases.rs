@@ -2,7 +2,10 @@ use {
     crate::tracks,
     std::time::Duration,
     builder::builder_methods,
-    bandcamp_api::data::releases::{Track, Release},
+    bandcamp_api::data::{
+        common::Date,
+        releases::{Track, Release}
+    },
     gen_tui::{
         style::StyleExt,
         layout::RectExt
@@ -43,10 +46,12 @@ impl <'a> ReleaseView<'a> {
             .release
             .info
             .release_date
-            .fmt_long();
+            .map(Date::fmt_long);
         
         if self.release.tracks.len() == 1 {
-            date.to_string()
+            date.as_ref()
+                .map(<_>::to_string)
+                .unwrap_or_default()
         } else {
             let minutes = self
                 .release
@@ -59,10 +64,13 @@ impl <'a> ReleaseView<'a> {
                 .round()
                 as u16;
 
+            let date = date
+                .map(|date| format!("{} {} ", date, tui::symbols::DOT))
+                .unwrap_or_default();
+
             format!(
-                "{} {} {} tracks, {} minute{}",
+                "{}{} tracks, {} minute{}",
                 date,
-                tui::symbols::DOT,
                 self.release.tracks.len(),
                 minutes,
                 if minutes > 1 { 's' } else { '​' }
@@ -125,21 +133,20 @@ impl <'a> ReleaseView<'a> {
     }
 
     fn titled_section<'s, F>(&'s self, f: F, title: &'s str) -> impl Iterator<Item = Spans<'s>>
-    where F: Fn(&'s Self) -> Option<Span<'s>> {
-        f(self).into_iter()
-            .flat_map(move |section| titled(section, title))
-            .flat_map(with_newline)
+    where F: Fn(&'s Self) -> Option<&'s str> {
+        f(self)
+            .into_iter()
+            .flat_map(move |section| titled(section.split("\n"), title))
     }
 
-    fn about(&self) -> Option<Span> {
+    fn about(&self) -> Option<&str> {
         self.release
             .info
             .about
             .as_deref()
-            .map(<_>::into)
     }
 
-    fn credits(&self) -> Option<Span> {
+    fn credits(&self) -> Option<&str> {
         self.release
             .info
             .credits
@@ -184,11 +191,12 @@ fn trim_title(title: &mut String, amount: usize) {
     title.push('…')
 }
 
-fn titled<'a>(span: Span<'a>, title: &'a str) -> impl Iterator<Item = Spans<'a>> {
-    use std::iter;
+fn titled<'a>(lines: impl Iterator<Item = &'a str>, title: &'a str) -> impl Iterator<Item = Spans<'a>> {
+    let bold = Style::default().bold();
 
-    iter::once(Span::styled(title, Style::default().bold()).into())
-        .chain(iter::once(span.into()))
+    with_newline(Span::styled(title, bold).into())
+        .chain(lines.map(<_>::into))
+        .chain(std::iter::once(newline()))
 }
 
 fn with_newline(spans: Spans) -> impl Iterator<Item = Spans> {
@@ -258,7 +266,7 @@ mod test {
     fn track_text() {
         let mut track = Track {
             title: "short".into(),
-            file: File { mp3_128: String::new() },
+            file: File { mp3_128: "a://b.c".parse().unwrap() },
             duration: Duration::from_secs(66),
         };
 
