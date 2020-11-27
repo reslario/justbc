@@ -53,6 +53,10 @@ pub struct NavView<'a> {
 }
 
 impl <'a> NavView<'a> {
+    pub fn library(self) -> Self {
+        Self { show: Show::Library, ..self }
+    }
+
     pub fn blank(self) -> Self {
         Self { show: Show::Explore(Explore::Blank), ..self }
     }
