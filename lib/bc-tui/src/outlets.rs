@@ -108,14 +108,16 @@ impl <'a> OutletView<'a> {
 
         if releases.is_empty() { return }
 
-        self.draw_titled_list(
-            "Releases",
-            releases,
-            fmt_release,
-            area,
-            buf,
-            state
-        );
+        with_featured(state, self.outlet.featured.len(), |state| {
+            self.draw_titled_list(
+                "Releases",
+                releases,
+                fmt_release,
+                area,
+                buf,
+                state
+            );
+        })
     }
 
     fn draw_titled_list<'r, T: 'r>(
@@ -145,7 +147,7 @@ impl <'a> OutletView<'a> {
         List::new(items)
             .style(self.style)
             .highlight_style(self.highlight_style)
-            .render(draw, buf, &mut state.list);
+            .render(draw, buf, state);
 
         area.shrink_top(len as _)
             .shrink_top(2)
@@ -173,17 +175,19 @@ fn fmt_release_info(info: &ReleaseInfo) -> Cow<str> {
         .unwrap_or_else(|| info.title.as_str().into())
 }
 
-#[derive(Default)]
-pub struct OutletViewState {
-    list: ListState
-}
+pub type OutletViewState = ListState;
 
-impl std::ops::Deref for OutletViewState {
-    type Target = ListState;
+fn with_featured(state: &mut OutletViewState, featured: usize, mut f: impl FnMut(&mut OutletViewState)) {
+    let selected = state.selected();
 
-    fn deref(&self) -> &Self::Target {
-        &self.list
-    }
+    state.select(
+        selected.and_then(|s| s.checked_sub(featured))
+    );
+
+    f(state);
+
+    state.select(None);
+    state.select(selected)
 }
 
 impl <'a> StatefulWidget for OutletView<'a> {
