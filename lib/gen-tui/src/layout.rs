@@ -44,6 +44,17 @@ pub trait RectExt: Sized + Copy {
     fn split_ratio_y(self, ratio: f32) -> (Self, Self);
 
     fn contains(self, x: u16, y: u16) -> bool;
+
+    fn centered(self, width: u16, height: u16) -> Self {
+        let (left, _) = self.split_ratio_x(0.5);
+        let (top_left, _) = left.split_ratio_y(0.5);
+
+        top_left
+            .from_right(width / 2)
+            .grow_right(width / 2)
+            .from_bottom(height / 2)
+            .grow_bottom(height / 2)
+    }
 }
 
 impl RectExt for tui::layout::Rect {
