@@ -87,25 +87,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bandcamp"
-version = "0.1.0"
-dependencies = [
- "bandcamp-api",
- "bc-tui",
- "crossterm",
- "enumerate",
- "event",
- "fetch",
- "gen-tui",
- "input",
- "play",
- "reqwest",
- "rodio",
- "stream",
- "tui",
-]
-
-[[package]]
 name = "bandcamp-api"
 version = "0.1.0"
 dependencies = [
@@ -1040,6 +1021,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca059e81d9486668f12d455a4ea6daa600bd408134cd17e3d3fb5a32d1f016f8"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "justbc"
+version = "0.1.0"
+dependencies = [
+ "bandcamp-api",
+ "bc-tui",
+ "crossterm",
+ "enumerate",
+ "event",
+ "fetch",
+ "gen-tui",
+ "input",
+ "play",
+ "reqwest",
+ "rodio",
+ "stream",
+ "tui",
 ]
 
 [[package]]
