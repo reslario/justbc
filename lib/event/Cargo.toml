@@ -1,0 +1,10 @@
+[package]
+name = "event"
+version = "0.1.0"
+authors = ["reslario <reslario.code@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+input = { path = "../input" }
+builder = { path = "../builder" }
+fetch = { path = "../fetch" }
