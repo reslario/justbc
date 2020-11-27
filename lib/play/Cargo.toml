@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 rodio = { version = "0.12.0", default-features = false }
+snafu = "0.6.9"

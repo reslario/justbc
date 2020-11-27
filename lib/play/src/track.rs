@@ -36,7 +36,7 @@ where
         }
     }
 
-    /// Starts playing the track. No effect if it's already playing.
+    /// Starts or resumes playing the track. No effect if it's already playing.
     pub fn play(&mut self) {
         self.elapsed = self.elapsed();
         self.last_play.replace(Instant::now());
@@ -82,13 +82,6 @@ where
                 }
             })
             .map_err(|_| CannotResume { elapsed: self.elapsed })
-    }
-
-    /// Stops playback and returns the `Sink` that was used.
-    pub fn stop(mut self) -> Sink {
-        self.pause();
-        self.sink.stop();
-        self.sink
     }
 
     /// Sets the volume of the track.
