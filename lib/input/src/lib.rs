@@ -5,6 +5,7 @@ pub use keys::Key;
 
 use {
     crossterm::event,
+    std::time::Duration,
     serde::{Serialize, Deserialize}
 };
 
@@ -32,7 +33,9 @@ pub enum Command {
 }
 
 pub fn keys() -> impl Iterator<Item = Key> {
-    std::iter::from_fn(|| event::poll(<_>::default()).ok())
+    // we need to pass a non-zero timeout duration for multiple keys
+    // to be read
+    std::iter::from_fn(|| event::poll(Duration::from_millis(1)).ok())
         .take_while(<_>::clone)
         .filter_map(|_| event::read().ok())
         .filter_map(|event| match event {
