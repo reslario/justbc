@@ -20,7 +20,7 @@ use {
         style::Style,
         layout::Rect,
         buffer::Buffer,
-        widgets::{StatefulWidget, Tabs}
+        widgets::{StatefulWidget, Tabs, ListState}
     }
 };
 
@@ -173,17 +173,8 @@ impl <'a> NavView<'a> {
     }
 
     fn draw_loading(&self, area: Rect, buf: &mut Buffer, state: &mut SpinnerState) {
-        let (left, _) = area.split_ratio_x(0.5);
-        let (top_left, _) = left.split_ratio_y(0.5);
-
-        let area = top_left
-            .from_right(2)
-            .grow_right(2)
-            .from_bottom(1)
-            .grow_bottom(1);
-
         Spinner::default()
-            .render(area, buf, state)
+            .render(area.centered(4, 2), buf, state)
     }
 
     fn draw_search<'s>(&self, search: &'s Search) -> ResultView<'s> {
@@ -204,87 +195,113 @@ impl <'a> NavView<'a> {
     }
 }
 
+enum BodyState {
+    Blank,
+    Results(ResultViewState),
+    Release(ReleaseViewState),
+    Outlet(OutletViewState),
+    Spinner(SpinnerState)
+}
+
+impl Default for BodyState {
+    fn default() -> Self {
+        BodyState::Blank
+    }
+}
+
 #[derive(Default)]
 pub struct NavViewState {
     pub input: TextInputState,
-    pub results: ResultViewState,
-    pub release: ReleaseViewState,
-    pub outlet: OutletViewState,
-    spinner: SpinnerState,
+    body: BodyState,
     scroll: u16
 }
 
+macro_rules! get_body {
+    ($var:ident . $field:ident, $variant:ident) => {
+        match &mut $var.$field {
+            BodyState::$variant(state) => state,
+            body => {
+                $var.scroll = 0;
+                *body = BodyState::$variant(<_>::default());
+                match body {
+                    BodyState::$variant(state) => state,
+                    _ => unreachable!()
+                }
+            } 
+        }
+    };
+}
+
 impl NavViewState {
-    pub fn scroll_down(&mut self, amount: u16) {
-        self.scroll += amount;
+    fn list_mut(&mut self) -> Option<&mut ListState> {
+        match &mut self.body {
+            BodyState::Blank
+                | BodyState::Spinner(_) => return None,
+            BodyState::Outlet(o) => o,
+            BodyState::Release(r) => &mut *r,
+            BodyState::Results(r) => r
+        }.into()
     }
 
-    pub fn scroll_up(&mut self, amount: u16) {
-        self.scroll -= amount;
+    fn list(&self) -> Option<&ListState> {
+        match &self.body {
+            BodyState::Blank
+                | BodyState::Spinner(_) => return None,
+            BodyState::Outlet(o) => o,
+            BodyState::Release(r) => &r,
+            BodyState::Results(r) => r
+        }.into()
     }
 
-    fn unscroll(&mut self) {
-        self.scroll = 0;
+    pub fn selected(&self) -> Option<usize> {
+        self.list()?.selected()
+    }
+
+    pub fn selection_down(&mut self) {
+        if let Some(list) = self.list_mut() {
+            let index = list
+                .selected()
+                .map(|idx| idx + 1)
+                .unwrap_or_default();
+
+            list.select(index.into())
+        }
+    }
+    
+    pub fn selection_up(&mut self) {
+        if let Some(list) = self.list_mut() {
+            list.select(list.selected().map(|s| s.saturating_sub(1)))
+        }
+    }
+
+    pub fn scroll_down(&mut self) {
+        self.scroll = self.scroll.saturating_add(1)
+    }
+
+    pub fn scroll_up(&mut self) {
+        self.scroll = self.scroll.saturating_sub(1)
     }
 
     fn blank(&mut self) {
-        let input = std::mem::take(&mut self.input);
-        *self = NavViewState { input, ..<_>::default() }
+        self.body = BodyState::Blank;
+        self.scroll = 0
     }
 
-    fn spinner(&mut self) -> &mut SpinnerState {
-        self.unscroll();
-
-        reset(
-            &mut self.results,
-            &mut self.release,
-            &mut self.outlet
-        );
-
-        &mut self.spinner
+    pub fn spinner(&mut self) -> &mut SpinnerState {
+        get_body!(self.body, Spinner)
     }
 
-    fn results(&mut self) -> &mut ResultViewState {
-        self.unscroll();
-
-        reset(
-            &mut self.spinner,
-            &mut self.release,
-            &mut self.outlet
-        );
-
-        &mut self.results
+    pub fn results(&mut self) -> &mut ResultViewState {
+        get_body!(self.body, Results)
     }
     
-    fn release(&mut self) -> &mut ReleaseViewState {
-        self.unscroll();
-
-        reset(
-            &mut self.spinner,
-            &mut self.results,
-            &mut self.outlet
-        );
-
-        &mut self.release
+    pub fn release(&mut self) -> &mut ReleaseViewState {
+        get_body!(self.body, Release)
     }
     
-    fn outlet(&mut self) -> &mut OutletViewState {
-        self.unscroll();
-        
-        reset(
-            &mut self.spinner,
-            &mut self.release,
-            &mut self.results
-        );
-
-        &mut self.outlet
+    pub fn outlet(&mut self) -> &mut OutletViewState {
+        get_body!(self.body, Outlet)
     }
-}
-
-fn reset(a: &mut impl Default, b: &mut impl Default, c: &mut impl Default) {
-    *a = <_>::default();
-    *b = <_>::default();
-    *c = <_>::default();
 }
 
 impl <'a> StatefulWidget for NavView<'a> {
