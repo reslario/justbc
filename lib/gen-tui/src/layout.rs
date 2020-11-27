@@ -184,4 +184,29 @@ macro_rules! dirs {
 
 impl Margin {
     dirs!(left, right, top, bottom);
+
+    pub fn all(amount: u16) -> Margin {
+        Margin {
+            left: amount,
+            right: amount,
+            top: amount,
+            bottom: amount
+        }
+    }
+
+    pub fn horizontal(amount: u16) -> Margin {
+        Margin {
+            left: amount,
+            right: amount,
+            ..<_>::default()
+        }
+    }
+
+    pub fn vertical(amount: u16) -> Margin {
+        Margin {
+            top: amount,
+            bottom: amount,
+            ..<_>::default()
+        }
+    }
 }
