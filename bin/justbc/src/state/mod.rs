@@ -165,8 +165,8 @@ impl State {
             ScrollDown => self.scroll_down(),
             ScrollUp => self.scroll_up(),
             Confirm => self.confirm(),
-            VolumeUp => self.update_volume(0.05),
-            VolumeDown => self.update_volume(-0.05),
+            VolumeUp => self.update_volume(Self::VOL_STEP),
+            VolumeDown => self.update_volume(-Self::VOL_STEP),
             _ => {}
         }
     }
@@ -336,6 +336,8 @@ impl State {
             }
         }
     }
+
+    const VOL_STEP: f32 = 0.05;
 
     fn update_volume(&mut self, by: f32) {
         let new = (self.core.player.volume() + by)
