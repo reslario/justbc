@@ -226,8 +226,8 @@ impl std::ops::DerefMut for ReleaseViewState {
 }
 
 impl ReleaseViewState {
-    pub fn play(&mut self, track: usize) {
-        self.playing.replace(track);
+    pub fn play(&mut self, track: impl Into<Option<usize>>) {
+        self.playing = track.into();
     }
 
     pub fn playing(&self) -> Option<usize> {

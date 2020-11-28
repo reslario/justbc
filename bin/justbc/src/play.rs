@@ -31,6 +31,10 @@ impl Queue {
         self.tracks.get(self.current + 1)
     }
 
+    pub fn prev(&self) -> Option<&Track> {
+        self.tracks.get(self.current.checked_sub(1)?)
+    }
+
     pub fn prepare_next(&self, elapsed: Duration) -> Option<&Track> {
         if self.current()?
             .duration
@@ -48,6 +52,12 @@ impl Queue {
     pub fn advance(&mut self) {
         if self.next().is_some() {
             self.current += 1
+        }
+    }
+
+    pub fn regress(&mut self) {
+        if self.prev().is_some() {
+            self.current -= 1;
         }
     }
 

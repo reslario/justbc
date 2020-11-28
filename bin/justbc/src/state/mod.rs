@@ -108,8 +108,34 @@ impl Core {
         }
     }
 
+    fn step_track(&mut self, op: impl Fn(&mut Queue)) -> Option<usize> {
+        op(&mut self.queue);
+
+        let track = match self.queue.current() {
+            Some(track) => Some(track),
+            None => {
+                self.queue.set_track(0);
+                self.queue.current()
+            }
+        }?;
+
+        self.player.stop();
+        self.fetch_track(track);
+        self.queue.index().into()
+    }
+
     fn fetch_track(&self, track: &Track) {
         self.fetcher.fetch_track(track.file.mp3_128.clone())
+    }
+
+    fn toggle_play(&mut self) -> bool {
+        if self.player.is_paused() {
+            self.player.resume();
+            true
+        } else {
+            self.player.pause();
+            false
+        }
     }
 }
 
@@ -167,6 +193,9 @@ impl State {
             Confirm => self.confirm(),
             VolumeUp => self.update_volume(Self::VOL_STEP),
             VolumeDown => self.update_volume(-Self::VOL_STEP),
+            NextTrack => self.step_track(Queue::advance),
+            PrevTrack => self.step_track(Queue::regress),
+            TogglePlay => self.toggle_play(),
             _ => {}
         }
     }
@@ -253,11 +282,7 @@ impl State {
             },
             Focus::Release => if let Some(track) = self.widgets.release.selected() {
                 if self.widgets.release.playing() == Some(track) {
-                    if self.core.player.is_paused() {
-                        self.core.player.resume()
-                    } else {
-                        self.core.player.pause()
-                    }
+                    self.toggle_play()
                 } else {
                     self.core.play(track)
                 }
@@ -347,6 +372,16 @@ impl State {
         self.core.player.set_volume(new)
     }
 
+    fn step_track(&mut self, op: impl Fn(&mut Queue)) {
+        self.widgets.release.play(self.core.step_track(op))
+    }
+
+    fn toggle_play(&mut self) {
+        if !self.core.toggle_play() {
+            self.widgets.release.play(None)
+        }
+    }
+
     fn try_play(&mut self, audio: Audio) {
         self.try_do(|this| this
             .core
@@ -378,7 +413,9 @@ impl State {
             self.core.fetch_track(track)
         }
 
-        self.widgets.release.play(self.core.queue.index())
+        if !self.core.player.is_paused() {
+            self.widgets.release.play(self.core.queue.index())
+        }
     }
 }
 
