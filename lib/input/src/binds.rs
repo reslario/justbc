@@ -100,7 +100,15 @@ const DEFAULT_BINDS: &[(Key, Command)] = {
         (
             Key { code: Left, modifiers: M::CONTROL },
             PrevTrack
-        )
+        ),
+        (
+            Key { code: Right, modifiers: M::NONE },
+            SkipAhead,
+        ),
+        (
+            Key { code: Left, modifiers: M::NONE },
+            SkipBack,
+        ),
     ]
 };
 

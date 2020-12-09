@@ -1,0 +1,10 @@
+[package]
+name = "mp3"
+version = "0.1.0"
+authors = ["reslario <reslario.code@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+puremp3 = "0.1.0"
+rodio = "0.13.0"
+seek =  { path = "../seek" }

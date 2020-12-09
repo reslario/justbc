@@ -6,7 +6,7 @@ use {
     buf::StreamBuf,
     std::{
         sync,
-        io::{self, Read}
+        io::{self, Read, Seek}
     },
 };
 
@@ -131,22 +131,33 @@ where R: Read + Send + Sync + 'static {
     }
 }
 
-/// Implementing `Seek` is required by [rodio's Decoder],
-/// since it tries to guess the audio format, which requires seeking to
-/// the start again after each failed attempt.
-/// However, since our use case only requires the mp3 format (and disables the others),
-/// no seeking is performed in practice.
-///
-/// So for now, this simply returns an error.
-///
-/// [rodio's Decoder]: https://docs.rs/rodio/0.12.0/rodio/decoder/struct.Decoder.html
 impl <R> io::Seek for AudioStream<R>
-where R: Read + Send + Sync + 'static {
-    fn seek(&mut self, _: io::SeekFrom) -> io::Result<u64> {
-        Err(io::Error::new(
-            io::ErrorKind::Other,
-            "seeking is not supported"
-        ))
+where R: Read + Seek + Send + Sync + 'static {
+    fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
+        self.fetch_thread
+            .await_fetched()
+            .transpose()?;
+
+        let mut reader = lock(&self.reader);
+
+        let pos = match pos {
+            io::SeekFrom::Start(pos) => pos as _,
+            io::SeekFrom::Current(offs) => if offs < 0 {
+                self.buf.pos() - -offs as usize
+            } else {
+                self.buf.pos() + offs as usize
+            },
+            pos => {
+                self.buf.restart_from(reader.seek(pos)? as _);
+                return Ok(self.buf.pos() as _)
+            }
+        };
+
+        if !self.buf.seek(pos) {
+            self.buf.restart_from(reader.seek(io::SeekFrom::Start(pos as _))? as _)
+        }
+
+        Ok(self.buf.pos() as _)
     }
 }
 
@@ -266,5 +277,35 @@ mod test {
         }
 
         compare_chunks(&bytes(), &buf)
+    }
+
+    #[test]
+    fn seek() {
+        let mut bytes = vec![0; 500];
+        bytes[250] = 1;
+        bytes[400] = 1;
+
+        let mut stream = AudioStream::new(io::Cursor::new(bytes)).unwrap();
+
+        assert_eq!(stream.seek(io::SeekFrom::Start(201)).unwrap(), 201);
+
+        let mut buf = [0; 50];
+        assert_eq!(stream.read(&mut buf).unwrap(), buf.len());
+
+        assert_eq!(*buf.last().unwrap(), 1);
+
+        assert_eq!(stream.seek(io::SeekFrom::End(-250)).unwrap(), 250);
+
+        assert_eq!(stream.read(&mut buf).unwrap(), buf.len());
+
+        assert_eq!(buf[0], 1);
+
+        assert_eq!(stream.seek(io::SeekFrom::Current(125)).unwrap(), 425);
+
+        assert_eq!(stream.read(&mut buf).unwrap(), buf.len());
+        assert_eq!(stream.seek(io::SeekFrom::Current(-75)).unwrap(), 400);
+        assert_eq!(stream.read(&mut buf).unwrap(), buf.len());
+
+        assert_eq!(buf[0], 1)
     }
 }

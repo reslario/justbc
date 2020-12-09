@@ -6,10 +6,14 @@ use {
     play::Player,
     fetch::Fetcher,
     explore::Explore,
-    std::error::Error,
     crate::play::Queue,
     input::binds::Bindings,
     gen_tui::widgets::input::Message as InputMessage,
+    std::{
+        ops::Add,
+        error::Error,
+        time::Duration
+    },
     bandcamp_api::{
         pages::SearchArgs,
         data::{
@@ -75,8 +79,8 @@ pub struct WidgetState {
     pub release_scroll: u16
 }
 
-type Stream = stream::AudioStream<reqwest::blocking::Response>;
-type Audio = rodio::Decoder<Stream>;
+type Stream = stream::AudioStream<bc_track::TrackStream>;
+type Audio = mp3::Mp3<Stream>;
 
 pub struct Core {
     bindings: Bindings,
@@ -196,6 +200,8 @@ impl State {
             NextTrack => self.step_track(Queue::advance),
             PrevTrack => self.step_track(Queue::regress),
             TogglePlay => self.toggle_play(),
+            SkipAhead => self.seek(<_>::add),
+            SkipBack => self.seek(saturating_sub),
             _ => {}
         }
     }
@@ -324,11 +330,11 @@ impl State {
             fetch::Response::Release(r) => if self.try_set_explore(r, ExploreState::Release) {
                 self.widgets.nav.release().select(FIRST)
             },
-            fetch::Response::Track(resp) => {
+            fetch::Response::Track(stream) => {
                 self.try_do(|this| Ok(this
                     .core
                     .next
-                    .replace(Audio::new_mp3(Stream::new(resp?)?)?)
+                    .replace(Audio::new(Stream::new(stream?)?))
                 ));
             }
         }
@@ -417,6 +423,10 @@ impl State {
             self.widgets.release.play(self.core.queue.index())
         }
     }
+}
+
+fn saturating_sub(a: Duration, b: Duration) -> Duration {
+    a.checked_sub(b).unwrap_or_default()
 }
 
 fn can_select_down(selected: Option<usize>, len: usize) -> bool {

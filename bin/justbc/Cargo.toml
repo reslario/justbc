@@ -18,3 +18,5 @@ event = { path = "../../lib/event" }
 input = { path = "../../lib/input" }
 fetch = { path = "../../lib/fetch" }
 enumerate = "0.1.1"
+bc-track = { path = "../../lib/bc-track" }
+mp3 = { path = "../../lib/mp3" }

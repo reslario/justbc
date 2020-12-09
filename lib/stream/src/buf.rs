@@ -151,6 +151,25 @@ impl StreamBuf {
     pub fn exhausted(&self) -> bool {
         self.cursor.done()
     }
+
+    pub fn seek(&mut self, pos: usize) -> bool {
+        if self.cursor.range.contains(&pos) {
+            self.cursor.pos = pos;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn pos(&self) -> usize {
+        self.cursor.pos
+    }
+
+    pub fn restart_from(&mut self, pos: usize) {
+        self.buf.clear();
+        self.cursor = <_>::default();
+        self.cursor.shift(pos)
+    }
 }
 
 impl std::ops::Deref for StreamBuf {

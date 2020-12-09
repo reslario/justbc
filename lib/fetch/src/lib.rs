@@ -3,6 +3,7 @@ mod pool;
 use {
     pool::ThreadPool,
     std::sync::mpsc,
+    bc_track::TrackStream,
     bandcamp_api::{
         Api,
         pages,
@@ -20,7 +21,7 @@ use {
 type SearchResult = QueryResult<Search, <Search as Query<pages::Search>>::Err>;
 type OutletResult = QueryResult<Outlet, <Outlet as Query<pages::Outlet>>::Err>;
 type ReleaseResult = QueryResult<Release, <Release as Query<pages::Release>>::Err>;
-type TrackResult = reqwest::Result<reqwest::blocking::Response>;
+type TrackResult = reqwest::Result<bc_track::TrackStream>;
 
 pub enum Response {
     Search(SearchResult),
@@ -87,13 +88,8 @@ impl Fetcher {
         let sender = self.sender.clone();
 
         self.pool.spawn(move || {
-            let response = api
-                .client()
-                .get(url)
-                .send();
-
-            sender.send(Response::Track(response))
-                .unwrap()
+            let stream = TrackStream::new(url, api.client().clone());
+            sender.send(Response::Track(stream)).unwrap()
         })
     }
 }

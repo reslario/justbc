@@ -1,0 +1,8 @@
+[package]
+name = "bc-track"
+version = "0.1.0"
+authors = ["reslario <reslario.code@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+reqwest = { version = "0.10.9", features = ["blocking"] }

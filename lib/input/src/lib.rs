@@ -29,7 +29,9 @@ pub enum Command {
     VolumeDown,
     TogglePlay,
     NextTrack,
-    PrevTrack
+    PrevTrack,
+    SkipAhead,
+    SkipBack
 }
 
 pub fn keys() -> impl Iterator<Item = Key> {

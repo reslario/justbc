@@ -5,11 +5,8 @@ use {
 };
 
 /// Resuming playback failed.
-/// Contains the elapsed time until this error occured.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct CannotResume {
-    pub elapsed: Duration
-}
+pub struct CannotResume;
 
 /// Controls playback of a sound and tracks its time.
 pub struct Track<S> {
@@ -85,11 +82,29 @@ where
                     self.play()
                 }
             })
-            .map_err(|_| CannotResume { elapsed: self.elapsed })
+            .map_err(|_| CannotResume)
     }
 
     /// Sets the volume of the track.
     pub fn set_volume(&self, volume: f32) {
         self.sink.set_volume(volume)
+    }
+
+    /// Sets the elapsed time directly.
+    pub fn set_elapsed(&mut self, elapsed: Duration) {
+        self.elapsed = elapsed;
+        if self.last_play.is_some() {
+            self.last_play.replace(Instant::now());
+        }
+    }
+
+    /// Consumes the track and returns the source it was playing.
+    pub fn into_source(mut self) -> Result<S, CannotResume> {
+        self.pause();
+        drop(self.sink);
+
+        self.retriever
+            .wait()
+            .map_err(|_| CannotResume)
     }
 }

@@ -6,9 +6,13 @@ use {
     track::Track,
     handle::Handle,
     snafu::ResultExt,
-    std::time::Duration,
     recover::Recoverable,
-    rodio::{Source, Sample}
+    rodio::{Source, Sample},
+    std::{
+        fmt,
+        error,
+        time::Duration,
+    }
 };
 
 #[derive(Debug, snafu::Snafu)]
@@ -48,7 +52,14 @@ where
 
     /// Plays the provided sound.
     pub fn play(&mut self, sound: S) -> Result<(), Error> {
-        let (source, retr) = Recoverable::new(sound);
+        self.set_source(sound)?;
+        self.mut_track(Track::play);
+
+        Ok(())
+    }
+    
+    fn set_source(&mut self, source: S) -> Result<(), Error> {
+        let (source, retr) = Recoverable::new(source);
 
         let sink = self
             .init_handle()
@@ -58,11 +69,8 @@ where
 
         sink.set_volume(self.volume);
         sink.append(source);
-
-        let mut track = Track::new(sink, retr);
-        track.play();
         
-        self.current.replace(track);
+        self.current.replace(Track::new(sink, retr));
 
         Ok(())
     }
@@ -128,7 +136,7 @@ where
                 .map_err(UpdateDeviceError::General)?;
 
             track.set_sink(sink)
-                .map_err(UpdateDeviceError::Resume)?
+                .map_err(|_| UpdateDeviceError::Resume)?
         }
 
         self.handle.replace(handle);
@@ -152,13 +160,77 @@ where
     pub fn is_empty(&self) -> bool {
         self.current.is_none()
     }
+
+    /// Seeks to the specified duration in the current track, if one exists.
+    pub fn seek(&mut self, duration: Duration) -> Result<(), SeekError<S::Error>>
+    where S: seek::SeekableSource {
+        let paused = self.is_paused();
+
+        if let Some(track) = self.current.take() {
+            let mut source = track
+                .into_source()
+                .map_err(|_| SeekError::Resume)?;
+
+            let elapsed = source
+                .seek(duration)
+                .map_err(SeekError::Seek)?;
+
+            if paused {
+                self.set_source(source)
+            } else {
+                self.play(source)
+            }.map_err(SeekError::General)?;
+
+            self.mut_track(|track| track.set_elapsed(elapsed));
+        }
+
+        Ok(())
+    }
 }
+
+/// Errors that can occur when seeking.
+#[derive(Debug)]
+pub enum SeekError<E> {
+    /// An error occured when seeking.
+    Seek(E),
+    /// A general playback error occured.
+    General(Error),
+    /// Resuming playback was not possible.
+    Resume
+}
+
+const FAILED_RESUME: &str = "failed to resume playback";
+
+impl <E: fmt::Display> fmt::Display for SeekError<E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SeekError::Seek(e) => e.fmt(f),
+            SeekError::General(e) => e.fmt(f),
+            SeekError::Resume => FAILED_RESUME.fmt(f)
+        }
+    }
+}
+
+impl <E: error::Error> error::Error for SeekError<E> {}
 
 /// Errors that can occur when updating the device.
 #[derive(Debug)]
 pub enum UpdateDeviceError {
-    /// A general playback error occured
+    /// A general playback error occured.
     General(Error),
-    /// Resuming playback is not possible.
-    Resume(track::CannotResume)
+    /// Resuming playback was not possible.
+    Resume
 }
+
+impl fmt::Display for UpdateDeviceError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "failed to update device: ")?;
+
+        match self {
+            UpdateDeviceError::General(e) => e.fmt(f),
+            UpdateDeviceError::Resume => FAILED_RESUME.fmt(f)
+        }
+    }
+}
+
+impl error::Error for UpdateDeviceError {}
