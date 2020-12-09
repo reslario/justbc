@@ -8,3 +8,4 @@ edition = "2018"
 input = { path = "../input" }
 builder = { path = "../builder" }
 fetch = { path = "../fetch" }
+device = { path = "../device" }

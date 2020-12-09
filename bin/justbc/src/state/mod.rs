@@ -397,6 +397,24 @@ impl State {
         );
     }
 
+    pub fn update_device(&mut self) {
+        self.try_do(|this| this
+                .core
+                .player
+                .update_device()
+                .map_err(<_>::into)
+        );
+    }
+
+    const SEEK: Duration = Duration::from_secs(5);
+
+    fn seek(&mut self, op: impl Fn(Duration, Duration) -> Duration) {
+        let new = op(self.core.player.elapsed(), Self::SEEK)
+            .min(self.core.queue.current().map(|track| track.duration).unwrap_or_default());
+
+        self.try_do(|this| this.core.player.seek(new).map_err(<_>::into));
+    }
+
     fn finished_current_track(&self) -> bool {
         self.core.queue.finished_current(self.core.player.elapsed())
     }

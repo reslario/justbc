@@ -30,13 +30,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut state = state::State::new(<_>::default(), api);
 
-    let events = Events::new(receiver);
+    let events = Events::new(receiver)?;
 
     loop {
         for event in events.iter() {
             match event {
                 Event::Input(evt) => state.input(evt),
-                Event::Response(resp) => state.set_response(resp)
+                Event::Response(resp) => state.set_response(resp),
+                Event::DeviceUpdated => state.update_device(),
             }
         }
 
