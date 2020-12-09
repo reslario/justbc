@@ -1,7 +1,7 @@
 use {
-    crate::recover::Retriever,
     rodio::{Sink, Source, Sample},
-    std::time::{Instant, Duration}
+    std::time::{Instant, Duration},
+    crate::recover::{Recoverable, Retriever}
 };
 
 /// Resuming playback failed.
@@ -76,7 +76,11 @@ where
         self.retriever
             .wait()
             .map(|source| {
+                let (source, retr) = Recoverable::new(source);
+
+                self.retriever = retr;
                 self.sink.append(source);
+
                 if !paused {
                     self.play()
                 }
