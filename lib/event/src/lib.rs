@@ -7,6 +7,7 @@ pub enum Event {
     Input(input::Key),
     Response(fetch::Response),
     DeviceUpdated,
+    Terminate
 }
 
 pub struct Events {
@@ -16,6 +17,8 @@ pub struct Events {
 
 impl Events {
     pub fn new(responses: mpsc::Receiver<fetch::Response>) -> io::Result<Events> {
+        let _ = terminate::install();
+        
         Ok(Events {
             responses,
             device_watcher: device::Watcher::new()?
@@ -27,6 +30,7 @@ impl Events {
             .map(Event::Input)
             .chain(self.responses())
             .chain(self.device_update())
+            .chain(self.should_terminate())
     }
 
     fn responses(&self) -> impl Iterator<Item = Event> + '_ {
@@ -37,6 +41,10 @@ impl Events {
 
     fn device_update(&self) -> impl Iterator<Item = Event> {
         event_if(self.device_watcher.device_updated(), Event::DeviceUpdated)
+    }
+
+    fn should_terminate(&self) -> impl Iterator<Item = Event> {
+        event_if(terminate::should(), Event::Terminate)
     }
 }
 

@@ -32,12 +32,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let events = Events::new(receiver)?;
 
-    loop {
+    'main: loop {
         for event in events.iter() {
             match event {
                 Event::Input(evt) => state.input(evt),
                 Event::Response(resp) => state.set_response(resp),
                 Event::DeviceUpdated => state.update_device(),
+                Event::Terminate => break 'main
             }
         }
 
@@ -47,4 +48,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         thread::sleep(Duration::from_millis(16))
     }
+
+    terminal.clear()?;
+    
+    Ok(())
 }

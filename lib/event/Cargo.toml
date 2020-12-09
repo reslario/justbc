@@ -9,3 +9,4 @@ input = { path = "../input" }
 builder = { path = "../builder" }
 fetch = { path = "../fetch" }
 device = { path = "../device" }
+terminate = { path = "../terminate" }
