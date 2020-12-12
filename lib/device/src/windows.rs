@@ -39,7 +39,7 @@ const CLIENT_VTABLE: IMMNotificationClientVtbl = IMMNotificationClientVtbl {
 };
 
 #[allow(non_snake_case)]
-unsafe extern "system" fn OnDefaultDeviceChanged(
+extern "system" fn OnDefaultDeviceChanged(
     _: *mut IMMNotificationClient,
     _: EDataFlow,
     _: ERole,
@@ -55,7 +55,7 @@ macro_rules! no_op {
     };
     ($name:ident ( $($arg:ty),* ) => $ret:ty) => {
         #[allow(non_snake_case)]
-        unsafe extern "system" fn $name($(_: $arg),*) -> $ret { S_OK as _ }
+        extern "system" fn $name($(_: $arg),*) -> $ret { S_OK as _ }
     };
 }
 
