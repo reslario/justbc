@@ -10,3 +10,4 @@ builder = { path = "../builder" }
 fetch = { path = "../fetch" }
 device = { path = "../device" }
 terminate = { path = "../terminate" }
+snafu = "0.6.10"

@@ -2,7 +2,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 static TERMINATE: AtomicBool = AtomicBool::new(false);
 
-pub fn install() -> Result<(), ctrlc::Error> {
+pub type Error = ctrlc::Error;
+
+pub fn install() -> Result<(), Error> {
     ctrlc::set_handler(|| TERMINATE.store(true, Ordering::SeqCst))
 }
 

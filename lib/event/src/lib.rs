@@ -1,6 +1,12 @@
-use std::{
-    io,
-    sync::mpsc
+use {
+    std::{
+        io,
+        sync::mpsc,
+    },
+    snafu::{
+        Snafu,
+        ResultExt
+    }
 };
 
 pub enum Event {
@@ -10,18 +16,26 @@ pub enum Event {
     Terminate
 }
 
+#[derive(Snafu, Debug)]
+pub enum Error {
+    #[snafu(display("error creating device watcher: {}", source))]
+    Device { source: io::Error },
+    #[snafu(display("error setting termination handler: {}", source))]
+    Terminate { source: terminate::Error }
+}
+
 pub struct Events {
     responses: mpsc::Receiver<fetch::Response>,
-    device_watcher: device::Watcher
+    device_watcher: device::Watcher,
 }
 
 impl Events {
-    pub fn new(responses: mpsc::Receiver<fetch::Response>) -> io::Result<Events> {
-        let _ = terminate::install();
+    pub fn new(responses: mpsc::Receiver<fetch::Response>) -> Result<Events, Error> {
+        terminate::install().context(Terminate)?;
         
         Ok(Events {
             responses,
-            device_watcher: device::Watcher::new()?
+            device_watcher: device::Watcher::new().context(Device)?,
         })
     }
 
