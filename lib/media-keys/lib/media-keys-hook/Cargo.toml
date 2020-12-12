@@ -1,0 +1,11 @@
+[package]
+name = "media-keys-hook"
+version = "0.1.0"
+authors = ["reslario <reslario.code@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["winuser", "ntdef", "windef", "minwindef", "winnt"] }

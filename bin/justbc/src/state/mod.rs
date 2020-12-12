@@ -7,6 +7,7 @@ use {
     fetch::Fetcher,
     explore::Explore,
     crate::play::Queue,
+    media_keys::MediaKey,
     input::binds::Bindings,
     gen_tui::widgets::input::Message as InputMessage,
     std::{
@@ -388,6 +389,11 @@ impl State {
         }
     }
 
+    fn stop(&mut self) {
+        self.core.player.stop();
+        self.widgets.release.play(None)
+    }
+
     fn try_play(&mut self, audio: Audio) {
         self.try_do(|this| this
             .core
@@ -413,6 +419,15 @@ impl State {
             .min(self.core.queue.current().map(|track| track.duration).unwrap_or_default());
 
         self.try_do(|this| this.core.player.seek(new).map_err(<_>::into));
+    }
+
+    pub fn handle_media_key(&mut self, key: MediaKey) {
+        match key {
+            MediaKey::Stop => self.stop(),
+            MediaKey::PlayPause => self.toggle_play(),
+            MediaKey::NextTrack => self.step_track(Queue::advance),
+            MediaKey::PrevTrack => self.step_track(Queue::regress)
+        }
     }
 
     fn finished_current_track(&self) -> bool {

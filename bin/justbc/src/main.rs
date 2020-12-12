@@ -37,6 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             match event {
                 Event::Input(evt) => state.input(evt),
                 Event::Response(resp) => state.set_response(resp),
+                Event::MediaKey(key) => state.handle_media_key(key),
                 Event::DeviceUpdated => state.update_device(),
                 Event::Terminate => break 'main
             }

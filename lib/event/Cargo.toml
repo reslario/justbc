@@ -10,4 +10,5 @@ builder = { path = "../builder" }
 fetch = { path = "../fetch" }
 device = { path = "../device" }
 terminate = { path = "../terminate" }
+media-keys = { path = "../media-keys" }
 snafu = "0.6.10"
