@@ -1,4 +1,6 @@
 mod none;
+
+#[cfg(windows)]
 mod windows;
 
 use std::io;
