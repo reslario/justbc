@@ -152,9 +152,9 @@ impl Drop for Watcher {
             // a thread-local value, but maybe `drop` never gets called?).
             //
             // This causes an access violation when the program exits, but
-            // luckily just calling `CoUninitialize` twice here seems to fix
-            // it.
-            for _ in 0..2 {
+            // luckily just calling `CoUninitialize` a couple of times here
+            // seems to fix it.
+            for _ in 0..5 {
                 combaseapi::CoUninitialize()
             }
         }
