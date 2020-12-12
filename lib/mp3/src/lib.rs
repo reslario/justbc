@@ -31,7 +31,7 @@ impl Frame {
         self.samples.set_current(self.samples_in(duration))
     }
 
-    fn samples_in(&self, duration: Duration) -> usize {
+    fn samples_in(&self, duration: Duration) -> u16 {
         let samples = duration.as_secs_f64()
             / self.sample_rate.hz() as f64;
         samples.round() as _
@@ -41,7 +41,7 @@ impl Frame {
 impl From<puremp3::Frame> for Frame {
     fn from(frame: puremp3::Frame) -> Self {
         Frame {
-            samples: Samples::new(frame.samples, frame.num_samples),
+            samples: Samples::new(frame.samples, frame.num_samples as _),
             sample_rate: frame.header.sample_rate
         }
     }
@@ -127,7 +127,7 @@ impl <R: Read> Iterator for Mp3<R> {
 
 impl <R: Read> rodio::Source for Mp3<R> {
     fn current_frame_len(&self) -> Option<usize> {
-        self.current.frame.samples.len().into()
+        Some(self.current.frame.samples.len() as _)
     }
 
     fn channels(&self) -> u16 {

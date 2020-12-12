@@ -17,13 +17,13 @@ impl std::ops::Not for Channel {
 
 pub struct Samples {
     samples: [[f32; 1152]; 2],
-    len: usize,
-    current: usize,
+    len: u16,
+    current: u16,
     channel: Channel
 }
 
 impl Samples {
-    pub fn new(samples: [[f32; 1152]; 2], len: usize) -> Samples {
+    pub fn new(samples: [[f32; 1152]; 2], len: u16) -> Samples {
         Samples {
             samples,
             len,
@@ -32,11 +32,11 @@ impl Samples {
         }
     }
 
-    pub fn len(&self) -> usize {
+    pub fn len(&self) -> u16 {
         self.len
     }
     
-    pub fn set_current(&mut self, pos: usize) {
+    pub fn set_current(&mut self, pos: u16) {
         self.current = pos;
         self.channel = Channel::Left
     }
@@ -46,17 +46,16 @@ impl Iterator for Samples {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current == self.len {
-            return None
-        }
+        let channel = self.channel as u16;
 
-        let channel = self.channel as usize;
-
-        let sample = self.samples[channel][self.current];
+        let sample = self
+            .samples[channel as usize]
+            .get(self.current.min(self.len) as usize)
+            .cloned();
 
         self.current += channel;
         self.channel = !self.channel;
 
-        sample.into()
+        sample
     }
 }
