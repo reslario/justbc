@@ -79,7 +79,7 @@ impl Fetcher {
 
         self.pool.spawn(move || {
             let response = api.execute(req).into();
-            sender.send(response).unwrap()
+            let _ = sender.send(response);
         })
     }
 
@@ -89,7 +89,7 @@ impl Fetcher {
 
         self.pool.spawn(move || {
             let stream = TrackStream::new(url, api.client().clone());
-            sender.send(Response::Track(stream)).unwrap()
+            let _ = sender.send(Response::Track(stream));
         })
     }
 }
