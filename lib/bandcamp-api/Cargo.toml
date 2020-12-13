@@ -11,9 +11,9 @@ harness = false
 [dependencies]
 url = "2.2.0"
 reqwest = { version = "0.10.9", features = ["blocking"], optional = true }
-serde = { version = "1.0.117", features = ["derive"], optional = true }
-serde_json = { version = "1.0.59", optional = true }
-snafu = { version = "0.6.9", optional = true }
+serde = { version = "1.0.118", features = ["derive"], optional = true }
+serde_json = { version = "1.0.60", optional = true }
+snafu = { version = "0.6.10", optional = true }
 bytes = { version =  "0.5.6", optional = true }
 scrape = { path = "../scrape", optional = true }
 

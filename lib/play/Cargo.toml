@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 rodio = { version = "0.13.0", default-features = false }
-snafu = "0.6.9"
+snafu = "0.6.10"
 seek = { path = "../seek" }
