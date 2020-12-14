@@ -46,16 +46,14 @@ impl Iterator for Samples {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let channel = self.channel as u16;
-
         let sample = self
-            .samples[channel as usize]
-            .get(self.current.min(self.len) as usize)
+            .samples[self.channel as usize]
+            .get(self.current as usize)
             .cloned();
 
-        self.current += channel;
+        self.current += self.channel as u16;
         self.channel = !self.channel;
-
+       
         sample
     }
 }
