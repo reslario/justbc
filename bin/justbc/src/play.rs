@@ -10,6 +10,7 @@ pub struct Queue {
 }
 
 impl Queue {
+    #[allow(clippy::ptr_arg)]
     pub fn clone_tracks(&mut self, tracks: &Vec<Track>) {
         self.tracks.clone_from(tracks);
         self.current = 0;

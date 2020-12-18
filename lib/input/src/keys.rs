@@ -256,35 +256,35 @@ mod test {
 
     #[test]
     fn plus() {
-        let key = format!("ctrl++").parse().unwrap();
+        let key = "ctrl++".parse().unwrap();
 
         assert_eq!(Key { code: KeyCode::Char('+'), modifiers: KeyModifiers::CONTROL }, key)
     }
 
     #[test]
     fn invalid_modifier() {
-        let key = format!("no+down").parse::<Key>();
+        let key = "no+down".parse::<Key>();
 
         assert_eq!(Err(ParseError::InvalidModifier), key)
     }
 
     #[test]
     fn f_key() {
-        let key = format!("alt+f12").parse().unwrap();
+        let key = "alt+f12".parse().unwrap();
 
         assert_eq!(Key { code: KeyCode::F(12), modifiers: KeyModifiers::ALT }, key)
     }
 
     #[test]
     fn invalid_f() {
-        let key = format!("alt+ftp").parse::<Key>();
+        let key = "alt+ftp".parse::<Key>();
 
         assert!(matches!(key, Err(ParseError::InvalidF(_))))
     }
 
     #[test]
     fn missing_key() {
-        let key = format!("shift+").parse::<Key>();
+        let key = "shift+".parse::<Key>();
 
         assert_eq!(Err(ParseError::MissingKey), key)
     }

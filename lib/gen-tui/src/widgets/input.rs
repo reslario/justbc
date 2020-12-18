@@ -46,8 +46,7 @@ impl TextInputState {
         self.cursor += self
             .text[self.cursor..]
             .char_indices()
-            .skip(1)
-            .next()
+            .nth(1)
             .unwrap_or_default()
             .0
     }
@@ -163,7 +162,7 @@ impl TextInputState {
         let end = self.text[self.cursor..]
             .find(|c| !pred(c))
             .map(|idx| self.cursor + idx)
-            .unwrap_or(self.text.len());
+            .unwrap_or_else(|| self.text.len());
 
         self.text.replace_range(self.cursor..end, "");
     }

@@ -150,12 +150,10 @@ impl <R: Read + Seek> seek::SeekableSource for Mp3<R> {
         if self.current.range.contains(&duration) {
             self.current.frame.start_at(duration - self.current.range.start);
             Ok(duration)
+        } else if self.current.range.start > duration {
+            self.find_left(duration)
         } else {
-            if self.current.range.start > duration {
-                self.find_left(duration)
-            } else {
-                self.find_right(duration)
-            }
+            self.find_right(duration)
         }
     }
 }

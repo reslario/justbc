@@ -126,11 +126,11 @@ pub extern "system" fn unset_shell_hook(window: HWNDPTR) -> BOOL {
 extern "system" fn handle_message(code: c_int, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     let notify_window = NOTIFY_WINDOW.load(SeqCst);
 
-    if code == HSHELL_APPCOMMAND && !notify_window.is_null() {
-        if MEDIA_COMMANDS.contains(&GET_APPCOMMAND_LPARAM(l_param)) {
-            return unsafe {
-                PostMessageA(notify_window, WM_APPCOMMAND, w_param, l_param) as _
-            }
+    if code == HSHELL_APPCOMMAND && !notify_window.is_null()
+        && MEDIA_COMMANDS.contains(&GET_APPCOMMAND_LPARAM(l_param)) 
+    {
+        return unsafe {
+            PostMessageA(notify_window, WM_APPCOMMAND, w_param, l_param) as _
         }
     }
 

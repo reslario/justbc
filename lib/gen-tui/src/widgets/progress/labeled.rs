@@ -132,7 +132,9 @@ where
             Placement::Split => self.draw_split(pos, max, inner, buf)
         };
 
-        self.block.map(|block| block.render(area, buf));
+        if let Some(block) = self.block {
+            block.render(area, buf)
+        }
 
         ProgressBar::default()
             .style(self.bar_style)

@@ -36,6 +36,16 @@ pub struct Player<S> {
     volume: f32
 }
 
+impl <S> Default for Player<S> {
+    fn default() -> Self {
+        Player {
+            handle: None,
+            current: None,
+            volume: 1.
+        }
+    }
+} 
+
 impl <S> Player<S> 
 where 
     S: Source + Iterator + Send + 'static,
@@ -43,11 +53,7 @@ where
 {
     /// Creates a new `Player`.
     pub fn new() -> Player<S> {
-        Player {
-            handle: None,
-            current: None,
-            volume: 1.
-        }
+        <_>::default()
     }
 
     /// Plays the provided sound.
