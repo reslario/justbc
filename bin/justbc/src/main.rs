@@ -6,7 +6,6 @@ use {
     event::*,
     fetch::Fetcher,
     bandcamp_api::Api,
-    reqwest::blocking::Client,
     tui::{
         Terminal,
         backend::CrosstermBackend
@@ -19,14 +18,18 @@ use {
     }
 };
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let client = Client::new();
+fn main() {
+    if let Err(e) = run() {
+        eprintln!("{}", e)
+    }
+}
 
+fn run() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    let (api, receiver) = Fetcher::new(Api::with_client(client));
+    let (api, receiver) = Fetcher::new(Api::new());
 
     let mut state = state::State::new(<_>::default(), api);
 
