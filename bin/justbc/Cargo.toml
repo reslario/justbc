@@ -12,8 +12,6 @@ gen-tui = { path = "../../lib/gen-tui", features = ["handle-input"] }
 bandcamp-api = { path = "../../lib/bandcamp-api" }
 stream = { path = "../../lib/stream" }
 play = { path = "../../lib/play" }
-reqwest = { version = "0.10.9", features = ["blocking"] }
-rodio = { version = "0.13.0", default-features = false, features = ["mp3"] }
 event = { path = "../../lib/event" }
 input = { path = "../../lib/input" }
 fetch = { path = "../../lib/fetch" }

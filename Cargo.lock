@@ -1075,8 +1075,6 @@ dependencies = [
  "media-keys",
  "mp3",
  "play",
- "reqwest",
- "rodio",
  "stream",
  "tui",
 ]
