@@ -1,6 +1,7 @@
 use {
     builder::builder_methods,
     super::{
+        fans::*,
         search::*,
         outlets::*,
         releases::*
@@ -11,6 +12,7 @@ use {
         widgets::{StatefulWidgetExt, Spinner, SpinnerState, TextInput, TextInputState},
     },
     bandcamp_api::data::{
+        fans::Fan,
         outlets::*,
         search::Search,
         releases::Release
@@ -40,6 +42,7 @@ impl <'a> Default for Show<'a> {
 enum Explore<'a> {
     Blank,
     Loading,
+    Fan(&'a Fan),
     Search(&'a Search),
     Outlet(&'a Outlet),
     Release(&'a Release)
@@ -63,6 +66,10 @@ impl <'a> NavView<'a> {
 
     pub fn loading(self) -> Self {
         Self { show: Show::Explore(Explore::Loading), ..self }
+    }
+
+    pub fn fan(self, fan: &'a Fan) -> Self {
+        Self { show: Show::Explore(Explore::Fan(fan)), ..self }
     }
 
     pub fn search(self, search: &'a Search) -> Self {
@@ -145,6 +152,7 @@ impl <'a> NavView<'a> {
             Show::Explore(xp) => match xp {
                 Explore::Blank => state.blank(),
                 Explore::Loading => self.draw_loading(area, buf, state.spinner()),
+                Explore::Fan(fan) => draw!(fan, Self::draw_fan, NavViewState::fan),
                 Explore::Search(search) => draw!(search, Self::draw_search, NavViewState::results),
                 Explore::Outlet(outlet) => draw!(outlet, Self::draw_outlet, NavViewState::outlet),
                 Explore::Release(release) => draw!(release, Self::draw_release, NavViewState::release)
@@ -177,8 +185,14 @@ impl <'a> NavView<'a> {
             .render(area.centered(4, 2), buf, state)
     }
 
-    fn draw_search<'s>(&self, search: &'s Search) -> ResultView<'s> {
-        ResultView::new(&search.results)
+    fn draw_fan<'f>(&self, fan: &'f Fan) -> FanView<'f> {
+        FanView::new(fan)
+            .style(self.style)
+            .highlight_style(self.highlight_style)
+    }
+
+    fn draw_search<'s>(&self, search: &'s Search) -> ResultList<'s> {
+        ResultList::new(&search.results)
             .style(self.style)
             .highlight_style(self.highlight_style)
     }
@@ -197,7 +211,8 @@ impl <'a> NavView<'a> {
 
 enum BodyState {
     Blank,
-    Results(ResultViewState),
+    Fan(FanViewState),
+    Results(ResultListState),
     Release(ReleaseViewState),
     Outlet(OutletViewState),
     Spinner(SpinnerState)
@@ -239,7 +254,8 @@ impl NavViewState {
                 | BodyState::Spinner(_) => return None,
             BodyState::Outlet(o) => o,
             BodyState::Release(r) => &mut *r,
-            BodyState::Results(r) => r
+            BodyState::Results(r) => r,
+            BodyState::Fan(f) => &mut f.collection
         }.into()
     }
 
@@ -249,7 +265,8 @@ impl NavViewState {
                 | BodyState::Spinner(_) => return None,
             BodyState::Outlet(o) => o,
             BodyState::Release(r) => &r,
-            BodyState::Results(r) => r
+            BodyState::Results(r) => r,
+            BodyState::Fan(f) => &f.collection
         }.into()
     }
 
@@ -291,7 +308,11 @@ impl NavViewState {
         get_body!(self.body, Spinner)
     }
 
-    pub fn results(&mut self) -> &mut ResultViewState {
+    pub fn fan(&mut self) -> &mut FanViewState {
+        get_body!(self.body, Fan)
+    }
+
+    pub fn results(&mut self) -> &mut ResultListState {
         get_body!(self.body, Results)
     }
     

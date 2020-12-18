@@ -16,8 +16,8 @@ use {
         time::Duration
     },
     bandcamp_api::{
-        pages::SearchArgs,
         data::{
+            fans::Fan,
             search::Search,
             outlets::Outlet,
             releases::{Release, Track}
@@ -80,7 +80,7 @@ pub struct WidgetState {
     pub release_scroll: u16
 }
 
-type Stream = stream::AudioStream<bc_track::TrackStream>;
+type Stream = stream::AudioStream<Box<bc_track::TrackStream>>;
 type Audio = mp3::Mp3<Stream>;
 
 pub struct Core {
@@ -130,7 +130,7 @@ impl Core {
     }
 
     fn fetch_track(&self, track: &Track) {
-        self.fetcher.fetch_track(track.file.mp3_128.clone())
+        self.fetcher.fetch_track(track.stream.mp3_128.clone())
     }
 
     fn toggle_play(&mut self) -> bool {
@@ -308,11 +308,11 @@ impl State {
                 InputMessage::Cancel => self.focus(Focus::NavBody),
                 InputMessage::Confirm => match self.navigation.active {
                     Active::Explore => {
-                        self.core.fetcher.query::<Search, _, _>(&SearchArgs::query(input.text()));
+                        self.core.fetcher.query::<Search, _,>(input.text());
                         self.navigation.explore = ExploreState::loading();
                         self.focus(Focus::NavBody)
                     },
-                    _ => {}
+                    Active::Library => {}
                 }
             }
         }
@@ -330,6 +330,30 @@ impl State {
             },
             fetch::Response::Release(r) => if self.try_set_explore(r, ExploreState::Release) {
                 self.widgets.nav.release().select(FIRST)
+            },
+            fetch::Response::Fan(fan) => {
+                self.try_do(|this| {
+                    match fan {
+                        Ok(mut fan) => {
+                            match &mut this.navigation.explore {
+                                ExploreState::Fan(existing) if existing.id == fan.id => {
+                                    existing.collection.append(&mut fan.collection);
+                                    this.widgets.nav.fan().set_loading(false);
+                                },
+                                _ => {
+                                    this.navigation.explore = ExploreState::Fan(fan);
+                                    this.widgets.nav.fan().collection.select(FIRST);
+                                }
+                            }
+    
+                            Ok(())
+                        },
+                        Err(e) => {
+                            this.navigation.explore = ExploreState::blank();
+                            Err(e.into())
+                        }
+                    }
+                });
             },
             fetch::Response::Track(stream) => {
                 self.try_do(|this| Ok(this

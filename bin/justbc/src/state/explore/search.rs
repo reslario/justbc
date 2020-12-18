@@ -6,8 +6,9 @@ use {
     },
     bandcamp_api::data::{
         outlets::Outlet,
-        releases::Release,
-        search::{self, SearchResult}
+        search::SearchResult,
+        fans::{Fan, FanArgs},
+        releases::{Release, ReleaseArgs ,ReleaseKind}
     }
 };
 
@@ -23,12 +24,34 @@ impl super::Explore for super::Search {
             .selected()
             .map(|idx| {
                 match &self.results[idx] {
-                    SearchResult::Artist(search::Artist { heading, .. })
-                        | SearchResult::Label(search::Label { heading, .. }) 
-                            => core.fetcher.query::<Outlet, _, _>(&heading.url),
-                    SearchResult::Album(search::Album { heading, .. })
-                        | SearchResult::Track(search::Track { heading, .. })
-                            => core.fetcher.query::<Release, _, _>(&heading.url),
+                    SearchResult::Outlet(o) => core.fetcher.query::<Outlet, _>(&o.id),
+                    SearchResult::Album(a) => {
+                        let args = ReleaseArgs {
+                            id: a.id,
+                            kind: ReleaseKind::Album,
+                            outlet: a.artist_id,
+                        };
+
+                        core.fetcher.query::<Release, _>(&args)
+                    },
+                    SearchResult::Track(t) => {
+                        let args = ReleaseArgs {
+                            id: t.id,
+                            kind: ReleaseKind::Track,
+                            outlet: t.artist_id,
+                        };
+
+                        core.fetcher.query::<Release, _>(&args)
+                    },
+                    SearchResult::Fan(f) => {
+                        let args = FanArgs {
+                            id: f.id,
+                            start: 0,
+                            count: FanArgs::DEFAULT_COUNT,
+                        };
+
+                        core.fetcher.query::<Fan, _>(&args)
+                    }
                 };
 
                 ExploreState::loading()

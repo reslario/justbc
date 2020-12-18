@@ -1,5 +1,5 @@
 use {
-    bandcamp_api::data::releases::Release,
+    bandcamp_api::data::releases::{Release, ReleaseArgs},
     crate::state::{
         Core,
         WidgetState,
@@ -9,10 +9,7 @@ use {
 
 impl super::Explore for super::Outlet {
     fn selection_down(&self, widgets: &mut WidgetState) {
-        let len = self.featured.len() 
-            + self.releases.len();
-
-        if super::can_select_down(widgets.nav.selected(), len) {
+        if super::can_select_down(widgets.nav.selected(), self.discography.len()) {
             widgets.nav.selection_down()
         }
     }
@@ -21,13 +18,15 @@ impl super::Explore for super::Outlet {
         widgets.nav
             .selected()
             .map(|idx| {
-                let release = self
-                .featured
-                .get(idx)
-                .map(|feat| &**feat)
-                .unwrap_or_else(|| &self.releases[idx - self.featured.len()].info);
+                let release = &self.discography[idx];
 
-                core.fetcher.query::<Release, _, _>(&release.url);
+                let args = ReleaseArgs {
+                    id: release.id,
+                    kind: release.kind,
+                    outlet: self.info.id,
+                };
+
+                core.fetcher.query::<Release, _>(&args);
 
                 ExploreState::loading()
             })

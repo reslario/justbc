@@ -2,7 +2,10 @@ use {
     crate::symbols,
     std::borrow::Cow,
     builder::builder_methods,
-    bandcamp_api::data::search::{SearchResult, Track, Album, Label, Artist},
+    bandcamp_api::data::{
+        outlets::OutletKind,
+        search::{SearchResult, Track, Album},
+    },
     tui::{
         style::Style,
         layout::Rect,
@@ -78,8 +81,11 @@ fn icon(result: &SearchResult) -> char {
     match result {
         SearchResult::Track(_) => symbols::TRACK,
         SearchResult::Album(_) => symbols::ALBUM,
-        SearchResult::Label(_) => symbols::LABEL,
-        SearchResult::Artist(_) => symbols::ARTIST
+        SearchResult::Fan(_) => symbols::FAN,
+        SearchResult::Outlet(o) => match o.kind {
+            OutletKind::Artist => symbols::ARTIST,
+            OutletKind::Label => symbols::LABEL
+        },
     }
 }
 
@@ -89,15 +95,15 @@ fn text(result: &SearchResult) -> Cow<str> {
     match result {
         R::Track(track) => track_text(track).into(),
         R::Album(album) => album_text(album).into(),
-        R::Label(Label { heading, .. })
-            | R::Artist(Artist { heading, .. }) => heading.title.as_str().into(),
+        R::Outlet(outlet) => outlet.name.as_str().into(),
+        R::Fan(fan) => fan.name.as_str().into()
     }
 }
 
 fn track_text(track: &Track) -> String {
-    crate::fmt_release(&track.source.by, &track.heading.title)
+    crate::fmt_release(&track.artist, &track.name)
 }
 
 fn album_text(album: &Album) -> String {
-    crate::fmt_release(&album.by, &album.heading.title)
+    crate::fmt_release(&album.artist, &album.name)
 }

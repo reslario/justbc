@@ -1,6 +1,6 @@
 use {
     std::error::Error,
-    bandcamp_api::data::releases::{Release, Track, File},
+    bandcamp_api::data::releases::{Release, Track, Stream},
     crate::state::{State, Core, WidgetState, Active, ExploreState},
     gen_tui::{
         layout::{RectExt, Margin},
@@ -81,7 +81,7 @@ fn draw_playing(
         .render_to(frame, layout.left, &mut widgets.release);
 
     if let Some(track) = core.queue.current() {
-        PlayBar::new(&release.artist, track)
+        PlayBar::new(&release.info.artist, track)
             .elapsed(core.player.elapsed())
             .volume(core.player.volume())
             .bar_style(ACCENT)
@@ -115,7 +115,8 @@ fn draw_nav(state: &mut State, layout: Layout, frame: &mut Frame<impl Backend>) 
             ExploreState::Loading(_) => nav.loading(),
             ExploreState::Outlet(o) => nav.outlet(o),
             ExploreState::Release(r) => nav.release(r),
-            ExploreState::Search(s) => nav.search(s)
+            ExploreState::Search(s) => nav.search(s),
+            ExploreState::Fan(f) => nav.fan(f)
         }
     };
 
@@ -144,7 +145,7 @@ fn draw_error(error: &dyn Error, frame: &mut Frame<impl Backend>, area: Rect) {
 fn dummy_track() -> Track {
     Track { 
         title: String::new(),
-        file: File { mp3_128: "r://".parse().unwrap() },
+        stream: Stream { mp3_128: "r://".parse().unwrap() },
         duration: <_>::default() 
     }
 }

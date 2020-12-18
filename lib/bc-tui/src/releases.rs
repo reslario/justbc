@@ -2,10 +2,7 @@ use {
     crate::tracks,
     std::time::Duration,
     builder::builder_methods,
-    bandcamp_api::data::{
-        common::Date,
-        releases::{Track, Release}
-    },
+    bandcamp_api::data::releases::{Track, Release},
     gen_tui::{
         style::StyleExt,
         layout::RectExt
@@ -46,12 +43,10 @@ impl <'a> ReleaseView<'a> {
             .release
             .info
             .release_date
-            .map(Date::fmt_long);
+            .fmt_long();
         
         if self.release.tracks.len() == 1 {
-            date.as_ref()
-                .map(<_>::to_string)
-                .unwrap_or_default()
+            date.to_string()
         } else {
             let minutes = self
                 .release
@@ -64,13 +59,10 @@ impl <'a> ReleaseView<'a> {
                 .round()
                 as u16;
 
-            let date = date
-                .map(|date| format!("{} {} ", date, tui::symbols::DOT))
-                .unwrap_or_default();
-
             format!(
-                "{}{} tracks, {} minute{}",
+                "{} {} {} tracks, {} minute{}",
                 date,
+                tui::symbols::DOT,
                 self.release.tracks.len(),
                 minutes,
                 if minutes > 1 { 's' } else { '​' }
@@ -84,7 +76,7 @@ impl <'a> ReleaseView<'a> {
         let title = Span::styled(&self.release.info.title, style);
         let (_, y) = buf.set_span(area.x, area.y, &title, area.width);
 
-        let artist = Span::styled(&self.release.artist, style);
+        let artist = Span::styled(&self.release.info.artist, style);
         let (_, y) = buf.set_span(area.x, y + 1, &artist, area.width);
 
         let date_duration = Span::styled(self.date_duration(), self.style);
@@ -132,7 +124,7 @@ impl <'a> ReleaseView<'a> {
     where F: Fn(&'s Self) -> Option<&'s str> {
         f(self)
             .into_iter()
-            .flat_map(move |section| titled(section.split("\n"), title))
+            .flat_map(move |section| titled(section.split('\n'), title))
     }
 
     fn about(&self) -> Option<&str> {
@@ -287,14 +279,14 @@ mod test {
     use {
         super::*,
         std::time::Duration,
-        bandcamp_api::data::releases::File
+        bandcamp_api::data::releases::Stream
     };
 
     #[test]
     fn track_text() {
         let mut track = Track {
             title: "short".into(),
-            file: File { mp3_128: "a://b.c".parse().unwrap() },
+            stream: Stream { mp3_128: "a://b.c".parse().unwrap() },
             duration: Duration::from_secs(66),
         };
 

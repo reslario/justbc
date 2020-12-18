@@ -1,7 +1,11 @@
 use {
-    std::str::FromStr,
     serde::Deserialize,
+    practicaltimestamp::UnixTimestamp,
     snafu::{Snafu, OptionExt, ResultExt},
+    std::{
+        str::FromStr,
+        num::NonZeroU8
+    },
     super::{
         Date,
         Month,
@@ -62,5 +66,39 @@ impl FromStr for Month {
         Month::iter()
             .find(|month| month.matches_str(s))
             .context(InvalidMonth)
+    }
+}
+
+impl Month {
+    fn matches_str(self, s: &str) -> bool {
+        if let Some(rest) = s.strip_prefix(self.short()) {
+            rest.is_empty() || rest == &self.long()[Month::SHORT_LEN..]
+        } else {
+            false
+        }
+    }
+
+    fn from_n(n: u8) -> Month {
+        Month::ALL[n as usize - 1]
+    }
+}
+
+impl Date {
+    fn from_unix_timestamp(timestamp: u64) -> Date {
+        let (year, month, day) = UnixTimestamp::from_unix_timestamp(timestamp as _)
+            .unwrap()
+            .to_year_month_day();
+
+        Date {
+            year,
+            month: Month::from_n(month),
+            day: NonZeroU8::new(day).unwrap()
+        }
+    }
+
+    pub fn deserialize_unix_timestamp<'de, D>(deserializer: D) -> Result<Self, D::Error>
+    where D: serde::Deserializer<'de> {
+        <_>::deserialize(deserializer)
+            .map(Date::from_unix_timestamp)
     }
 }

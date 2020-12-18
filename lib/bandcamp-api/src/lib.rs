@@ -1,32 +1,13 @@
 pub mod data;
 
 #[cfg(feature = "query")]
-pub mod pages;
+mod url;
 
 #[cfg(feature = "query")]
 use {
-    std::{
-        fmt::Display,
-        marker::PhantomData,
-    },
-    pages::Page,
-    scrape::Scraper,
-    reqwest::blocking::Client,
-    snafu::{Snafu, ResultExt}
+    std::marker::PhantomData,
+    reqwest::blocking::Client
 };
-
-#[cfg(feature = "query")]
-#[derive(Debug, Snafu)]
-pub enum QueryError<DE>
-where DE: std::fmt::Display + snafu::Error + 'static {
-    #[snafu(display("connection error: {}", source))]
-    Connection { source: reqwest::Error },
-    #[snafu(display("error retrieving data: {}", source))]
-    Data { source: DE }
-}
-
-#[cfg(feature = "query")]
-pub type QueryResult<T, DE> = Result<T, QueryError<DE>>;
 
 #[cfg(feature = "query")]
 pub struct Request<T> {
@@ -35,7 +16,10 @@ pub struct Request<T> {
 }
 
 #[cfg(feature = "query")]
-#[derive(Clone)]
+pub type Result<T> = reqwest::Result<T>;
+
+#[cfg(feature = "query")]
+#[derive(Clone, Default)]
 pub struct Api {
     client: Client
 }
@@ -43,35 +27,29 @@ pub struct Api {
 #[cfg(feature = "query")]
 impl Api {
     pub fn new() -> Api {
-        Api::with_client(Client::new())
+        <_>::default()
     }
 
     pub fn with_client(client: Client) -> Api {
         Api { client }
     }
 
-    pub fn query<T, P, A>(&self, args: &A) -> QueryResult<T, T::Err>
+    pub fn query<T, A>(&self, args: &A) -> Result<T>
     where 
-        T: data::Query<P>,
-        P: Page<A>,
-        A: ?Sized,
-        T::Err: snafu::Error + Display + 'static,
-        for <'url> &'url <P as Page<A>>::Url: reqwest::IntoUrl
+        T: data::Query<A>,
+        A: ?Sized    
     {
         self.execute(self.request(args))
     }
 
-    pub fn request<T, P, A>(&self, args: &A) -> Request<T>
+    pub fn request<T, A>(&self, args: &A) -> Request<T>
     where 
-        T: data::Query<P>,
-        P: Page<A>,
-        A: ?Sized,
-        T::Err: snafu::Error + Display + 'static,
-        for <'url> &'url <P as Page<A>>::Url: reqwest::IntoUrl
+        T: data::Query<A>,
+        A: ?Sized    
     {
         let inner = self
             .client
-            .get(&P::url(args))
+            .get(T::url(args))
             .build()
             .unwrap();
         
@@ -81,24 +59,14 @@ impl Api {
         }
     }
 
-    pub fn execute<T, P, A>(&self, request: Request<T>) -> QueryResult<T, T::Err>
+    pub fn execute<T, A>(&self, request: Request<T>) -> Result<T>
     where 
-        T: data::Query<P>,
-        P: Page<A>,
-        A: ?Sized,
-        T::Err: snafu::Error + Display + 'static,
-        for <'url> &'url <P as Page<A>>::Url: reqwest::IntoUrl
+        T: data::Query<A>,
+        A: ?Sized    
     {
         self.client
-            .execute(request.inner)
-            .context(Connection)?
-            .bytes()
-            .context(Connection)
-            .map(std::io::Cursor::new)
-            .map(Scraper::new)
-            .map(P::from)
-            .map(T::query)?
-            .context(Data)
+            .execute(request.inner)?
+            .json()
     }
 
     pub fn client(&self) -> &Client {

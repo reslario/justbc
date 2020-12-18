@@ -1,4 +1,5 @@
 mod empty;
+mod fan;
 mod search;
 mod outlet;
 mod release;
@@ -7,7 +8,7 @@ pub use empty::*;
 
 use super::*;
 
-#[enumerate::enumerate(ExploreState: Blank, Loading, Search, Outlet, Release)]
+#[enumerate::enumerate(ExploreState: Blank, Loading, Fan, Search, Outlet, Release)]
 pub trait Explore {
     fn selection_down(&self, widgets: &mut WidgetState);
 

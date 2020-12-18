@@ -2,10 +2,9 @@ pub mod common;
 pub mod releases;
 pub mod search;
 pub mod outlets;
+pub mod fans;
 
 #[cfg(feature = "query")]
-pub trait Query<P>: Sized {
-    type Err;
-
-    fn query(page: P) -> Result<Self, Self::Err>;
+pub trait Query<A: ?Sized>: serde::de::DeserializeOwned {
+    fn url(args: &A) -> url::Url;
 }

@@ -4,22 +4,15 @@ version = "0.1.0"
 authors = ["reslario <reslario.code@gmail.com>"]
 edition = "2018"
 
-[[bench]]
-name = "bench"
-harness = false
-
 [dependencies]
 url = "2.2.0"
-reqwest = { version = "0.10.9", features = ["blocking"], optional = true }
+reqwest = { version = "0.10.10", features = ["blocking", "json"], optional = true }
 serde = { version = "1.0.118", features = ["derive"], optional = true }
 serde_json = { version = "1.0.60", optional = true }
 snafu = { version = "0.6.10", optional = true }
 bytes = { version =  "0.5.6", optional = true }
-scrape = { path = "../scrape", optional = true }
-
-[dev-dependencies]
-criterion = "0.3.3"
+practicaltimestamp = { version = "0.1.0", optional = true }
 
 [features]
 default = ["query"]
-query = ["reqwest", "serde", "serde_json", "snafu", "bytes", "scrape"]
+query = ["reqwest", "serde", "serde_json", "snafu", "bytes", "practicaltimestamp"]

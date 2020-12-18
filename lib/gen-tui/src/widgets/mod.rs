@@ -17,11 +17,12 @@ pub use {
 };
 
 use tui::{
+    text,
     Frame,
-    widgets,
     layout::Rect,
     buffer::Buffer,
-    backend::Backend
+    backend::Backend,
+    widgets::{self, Widget}
 };
 
 macro_rules! widget_ext_fns {
@@ -66,7 +67,31 @@ fn rendered_block(area: Rect, buf: &mut Buffer)
 -> impl FnMut(widgets::Block) -> Rect + '_ {
     move |block| {
         let inner = block.inner(area);
-        widgets::Widget::render(block, area, buf);
+        block.render(area, buf);
         inner
     }
+}
+
+pub fn draw_paragraph<'t>(
+    text: impl Into<text::Text<'t>>,
+    mut cfg: impl FnMut(widgets::Paragraph<'t>) -> widgets::Paragraph<'t>,
+    area: Rect,
+    buf: &mut Buffer
+) -> u16 {
+    let mut text = text.into();
+
+    // there seems to be no way to find out how many lines
+    // a rendered paragraph takes up, so we append a line
+    // with this character in order to find it again later
+    const END: &str = "\u{180E}";
+
+    text.extend(std::iter::once(END.into()));
+
+    cfg(widgets::Paragraph::new(text))
+        .render(area, buf);
+
+    (area.y..buf.area.bottom())
+        .take_while(|y| buf.get(area.x, *y).symbol != END)
+        .count()
+        as _
 }

@@ -6,11 +6,10 @@ use {
     bc_track::TrackStream,
     bandcamp_api::{
         Api,
-        pages,
-        QueryResult,
+        Result,
         data::{
-            self,
             Query,
+            fans::Fan,
             search::Search,
             outlets::Outlet,
             releases::Release
@@ -18,16 +17,12 @@ use {
     }
 };
 
-type SearchResult = QueryResult<Search, <Search as Query<pages::Search>>::Err>;
-type OutletResult = QueryResult<Outlet, <Outlet as Query<pages::Outlet>>::Err>;
-type ReleaseResult = QueryResult<Release, <Release as Query<pages::Release>>::Err>;
-type TrackResult = reqwest::Result<bc_track::TrackStream>;
-
 pub enum Response {
-    Search(SearchResult),
-    Outlet(OutletResult),
-    Release(ReleaseResult),
-    Track(TrackResult)
+    Fan(Result<Fan>),
+    Search(Result<Search>),
+    Outlet(Result<Outlet>),
+    Release(Result<Release>),
+    Track(Result<Box<bc_track::TrackStream>>)
 }
 
 macro_rules! from {
@@ -40,9 +35,10 @@ macro_rules! from {
     };
 }
 
-from!(Search, SearchResult);
-from!(Outlet, OutletResult);
-from!(Release, ReleaseResult);
+from!(Fan, Result<Fan>);
+from!(Search, Result<Search>);
+from!(Outlet, Result<Outlet>);
+from!(Release, Result<Release>);
 
 pub struct Fetcher {
     api: Api,
@@ -63,14 +59,11 @@ impl Fetcher {
         (fetcher, receiver)
     }
 
-    pub fn query<T, P, A>(&self, args: &A)
+    pub fn query<T, A>(&self, args: &A)
     where 
-        T: data::Query<P> + Send + 'static,
-        P: pages::Page<A>,
+        T: Query<A> + Send + 'static,
+        Result<T>: Into<Response>,
         A: ?Sized,
-        T::Err: snafu::Error + std::fmt::Display + 'static,
-        for <'url> &'url <P as pages::Page<A>>::Url: reqwest::IntoUrl,
-        QueryResult<T, T::Err>: Into<Response>
     {
         let api = self.api.clone();
         let sender = self.sender.clone();
@@ -89,7 +82,7 @@ impl Fetcher {
 
         self.pool.spawn(move || {
             let stream = TrackStream::new(url, api.client().clone());
-            let _ = sender.send(Response::Track(stream));
+            let _ = sender.send(Response::Track(stream.map(Box::new)));
         })
     }
 }

@@ -117,15 +117,6 @@ impl Month {
     pub fn short(self) -> &'static str {
         &self.long()[..Month::SHORT_LEN]
     }
-
-    #[cfg(feature = "query")]
-    fn matches_str(self, s: &str) -> bool {
-        if let Some(rest) = s.strip_prefix(self.short()) {
-            rest.is_empty() || rest == &self.long()[Month::SHORT_LEN..]
-        } else {
-            false
-        }
-    }
 }
 
 impl fmt::Debug for Month {

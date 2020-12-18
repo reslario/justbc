@@ -3,6 +3,7 @@ use {
     std::borrow::Cow,
     builder::builder_methods,
     gen_tui::{
+        widgets,
         style::StyleExt,
         layout::RectExt
     },
@@ -15,7 +16,7 @@ use {
         style::Style,
         layout::Rect,
         buffer::Buffer,
-        widgets::{StatefulWidget, List, ListItem, ListState, Paragraph, Wrap}
+        widgets::{StatefulWidget, List, ListItem, ListState, Wrap}
     }
 };
 
@@ -40,8 +41,6 @@ impl <'a> OutletView<'a> {
     }
 
     fn draw_info(&self, area: Rect, buf: &mut Buffer) -> Rect {
-        use tui::widgets::Widget;
-
         let info = &self.outlet.info;
 
         let symbol = match info.kind {
@@ -68,106 +67,52 @@ impl <'a> OutletView<'a> {
             );
         }
 
-        // there seems to be no way to find out how many lines
-        // a rendered paragraph takes up, so we append a line
-        // with this character in order to find it again later
-        const END: &str = "\u{180E}";
+        let height = widgets::draw_paragraph(
+            text,
+            |p| p.style(self.style).wrap(Wrap { trim: true }),
+            area,
+            buf
+        );
 
-        text.push(END.into());
-
-        Paragraph::new(text)
-            .style(self.style)
-            .wrap(Wrap { trim: true })
-            .render(area, buf);
-
-        let lines = (area.y..buf.area.bottom())
-            .take_while(|y| buf.get(area.x, *y).symbol != END)
-            .count();
-
-        area.shrink_top(lines as _)
+        area.shrink_top(height)
             .shrink_top(1)
     }
 
-    fn draw_featured(&self, area: Rect, buf: &mut Buffer, state: &mut OutletViewState) -> Rect {
-        let featured = &self.outlet.featured;
-
-        if featured.is_empty() { return area }
-
-        self.draw_titled_list(
-            "Featured",
-            featured,
-            fmt_featured,
-            area,
-            buf,
-            state
-        )
-    }
-
     fn draw_releases(&self, area: Rect, buf: &mut Buffer, state: &mut OutletViewState) {
-        let releases = &self.outlet.releases;
+        let releases = &self.outlet.discography;
 
         if releases.is_empty() { return }
 
-        with_featured(state, self.outlet.featured.len(), |state| {
-            self.draw_titled_list(
-                "Releases",
-                releases,
-                fmt_release,
-                area,
-                buf,
-                state
-            );
-        })
-    }
-
-    fn draw_titled_list<'r, T: 'r>(
-        &self,
-        title: &str,
-        iter: impl IntoIterator<Item = &'r T>,
-        format: impl Fn(&'r T) -> Cow<'r, str>,
-        area: Rect,
-        buf: &mut Buffer,
-        state: &mut OutletViewState
-    ) -> Rect {
-        buf.set_span(area.x, area.y, &Span::styled(title, self.style.bold()), area.width);
+        buf.set_span(area.x, area.y, &Span::styled("Releases", self.style.bold()), area.width);
 
         let draw = area
             .shrink_top(1)
             .shrink_left(2);
 
-        let items = iter
-            .into_iter()
-            .map(format)
+        let items = releases
+            .iter()
+            .map(fmt_release)
             .map(Span::raw)
             .map(ListItem::new)
             .collect::<Vec<_>>();
 
-        let len = items.len();
-
         List::new(items)
             .style(self.style)
             .highlight_style(self.highlight_style)
-            .render(draw, buf, state);
-
-        area.shrink_top(len as _)
-            .shrink_top(2)
+            .render(draw, buf, state)
     }
 }
 
-fn fmt_featured(featured: &Featured) -> Cow<str> {
-    fmt_release_info(&featured)
-}
-
-fn fmt_release(release: &Release) -> Cow<str> {
+fn fmt_release(release: &Release) -> String {
     let icon = match release.kind {
         ReleaseKind::Track => symbols::TRACK,
         ReleaseKind::Album => symbols::ALBUM
     };
 
-    format!("{} {}", icon, fmt_release_info(&release.info)).into()
+    format!("{} {}", icon, fmt_release_info(&release))
 }
 
-fn fmt_release_info(info: &ReleaseInfo) -> Cow<str> {
+fn fmt_release_info(info: &Release) -> Cow<str> {
     info.artist
         .as_ref()
         .map(|artist| crate::fmt_release(artist, &info.title))
@@ -177,25 +122,11 @@ fn fmt_release_info(info: &ReleaseInfo) -> Cow<str> {
 
 pub type OutletViewState = ListState;
 
-fn with_featured(state: &mut OutletViewState, featured: usize, mut f: impl FnMut(&mut OutletViewState)) {
-    let selected = state.selected();
-
-    state.select(
-        selected.and_then(|s| s.checked_sub(featured))
-    );
-
-    f(state);
-
-    state.select(None);
-    state.select(selected)
-}
-
 impl <'a> StatefulWidget for OutletView<'a> {
     type State = OutletViewState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let area = self.draw_info(area, buf);
-        let area = self.draw_featured(area, buf, state);
         self.draw_releases(area, buf, state)
     }
 }
