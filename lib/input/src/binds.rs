@@ -17,6 +17,19 @@ impl Bindings {
     pub fn get(&self, key: Key) -> Option<Command> {
         self.map.get(&key).copied()
     }
+
+    pub fn patch_default(&mut self) {
+        for (key, cmd) in DEFAULT_BINDS {
+            self.map
+                .entry(*key)
+                .or_insert(*cmd);
+        }
+    }
+
+    pub fn patched(mut self) -> Bindings {
+        self.patch_default();
+        self
+    }
 }
 
 const DEFAULT_BINDS: &[(Key, Command)] = {

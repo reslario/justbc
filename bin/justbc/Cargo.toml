@@ -19,3 +19,8 @@ enumerate = "0.1.1"
 bc-track = { path = "../../lib/bc-track" }
 mp3 = { path = "../../lib/mp3" }
 media-keys = { path = "../../lib/media-keys" }
+serde = { version = "1.0.118", features = ["derive"] }
+directories = "3.0.1"
+structopt = "0.3.21"
+structopt-toml = "0.4.5"
+toml = "0.5.8"

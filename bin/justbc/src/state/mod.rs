@@ -83,8 +83,8 @@ pub struct WidgetState {
 type Stream = stream::AudioStream<Box<bc_track::TrackStream>>;
 type Audio = mp3::Mp3<Stream>;
 
-pub struct Core {
-    bindings: Bindings,
+pub struct Core<'a> {
+    bindings: &'a Bindings,
     fetcher: Fetcher,
     focus: Focus,
     pub queue: Queue,
@@ -93,7 +93,7 @@ pub struct Core {
     pub release: Option<Release>,
 }
 
-impl Core {
+impl Core<'_> {
     fn set_release(&mut self, release: Release, start_track: usize) {
         self.player.stop();
         self.next = None;
@@ -144,15 +144,15 @@ impl Core {
     }
 }
 
-pub struct State {
-    pub core: Core,
+pub struct State<'a> {
+    pub core: Core<'a>,
     pub navigation: Navigation,
     pub widgets: WidgetState,
     pub error: Option<Box<dyn Error>>
 }
 
-impl State {
-    pub fn new(bindings: Bindings, fetcher: Fetcher) -> State {
+impl <'a> State<'a> {
+    pub fn new(bindings: &'a Bindings, fetcher: Fetcher) -> State {
         State {
             core: Core {
                 bindings,

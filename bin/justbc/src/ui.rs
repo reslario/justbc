@@ -1,16 +1,19 @@
 use {
     std::error::Error,
     bandcamp_api::data::releases::{Release, Track, Stream},
-    crate::state::{State, Core, WidgetState, Active, ExploreState},
+    crate::{
+        cfg,
+        state::{State, Core, WidgetState, Active, ExploreState}
+    },
     gen_tui::{
         layout::{RectExt, Margin},
         widgets::{WidgetExt, StatefulWidgetExt}
     },
     tui::{
         Frame,
+        style::Style,
         backend::Backend,
         layout::{Rect, Alignment},
-        style::{Color, Style, Modifier},
         widgets::{Borders, Paragraph, Wrap, BorderType}
     },
     bc_tui::{
@@ -18,13 +21,6 @@ use {
         tracks::PlayBar,
         releases::ReleaseView
     }
-};
-
-const ACCENT: Style = Style {
-    fg: Some(Color::Cyan),
-    bg: None,
-    add_modifier: Modifier::empty(),
-    sub_modifier: Modifier::empty() 
 };
 
 #[derive(Copy, Clone)]
@@ -47,17 +43,18 @@ impl From<Rect> for Layout {
     }
 }
 
-pub fn draw(frame: &mut Frame<impl Backend>, state: &mut State) {
+pub fn draw(frame: &mut Frame<impl Backend>, state: &mut State, cfg: &cfg::Graphics) {
     let area = frame.size();
     let layout = Layout::from(area);
+    let accent = Style::default().fg(cfg.accent);
 
     if let Some(release) = state.core.release.as_ref() {
-        draw_playing(release, &state.core, &mut state.widgets, layout, frame)
+        draw_playing(release, &state.core, &mut state.widgets, layout, accent, frame)
     } else {
         draw_placeholders(state, layout, frame)
     }
 
-    draw_nav(state, layout, frame);
+    draw_nav(state, layout, accent, frame);
 
     if let Some(error) = state.error.as_deref() {
         draw_error(error, frame, area)
@@ -69,10 +66,11 @@ fn draw_playing(
     core: &Core,
     widgets: &mut WidgetState,
     layout: Layout,
+    accent: Style,
     frame: &mut Frame<impl Backend>
 ) {
     ReleaseView::new(release)
-        .playing_style(ACCENT)
+        .playing_style(accent)
         .scrollable()
         .scroll_y(widgets.release_scroll)
         .with_container()
@@ -84,7 +82,7 @@ fn draw_playing(
         PlayBar::new(&release.info.artist, track)
             .elapsed(core.player.elapsed())
             .volume(core.player.volume())
-            .bar_style(ACCENT)
+            .bar_style(accent)
             .with_container()
             .borders(Borders::TOP)
             .render_to(frame, layout.bottom, &mut widgets.play_bar)
@@ -106,7 +104,7 @@ fn draw_placeholders(state: &mut State, layout: Layout, frame: &mut Frame<impl B
         .render_to(frame, layout.bottom, &mut state.widgets.play_bar)
 }
 
-fn draw_nav(state: &mut State, layout: Layout, frame: &mut Frame<impl Backend>) {
+fn draw_nav(state: &mut State, layout: Layout, accent: Style, frame: &mut Frame<impl Backend>) {
     let mut nav = NavView::default();
     nav = match state.navigation.active {
         Active::Library => nav.library(),
@@ -120,7 +118,7 @@ fn draw_nav(state: &mut State, layout: Layout, frame: &mut Frame<impl Backend>) 
         }
     };
 
-    nav.highlight_style(ACCENT)
+    nav.highlight_style(accent)
         .with_container()
         .margin(Margin::left(1))
         .render_to(frame, layout.right, &mut state.widgets.nav);
