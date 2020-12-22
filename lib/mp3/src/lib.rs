@@ -66,7 +66,7 @@ impl Default for Current {
 fn empty_frame() -> Frame {
     Frame {
         samples: Samples::new([[0.; 1152]; 2], 0),
-        sample_rate: SampleRate::Hz8000
+        sample_rate: SampleRate::Hz44100
     }
 }
 
