@@ -29,7 +29,7 @@ pub struct Config {
 impl Config {
     pub fn load(cfg_file: impl AsRef<Path>) -> crate::Result<Config> {
         if cfg_file.as_ref().exists() {
-            let cfg = std::fs::read_to_string(&cfg_file)?;
+            let cfg = fs::read_to_string(&cfg_file)?;
             Config::from_args_with_toml(&cfg)
                 .map_err(<_>::into)
         } else {
@@ -41,6 +41,10 @@ impl Config {
     pub fn save(&self, cfg_file: impl AsRef<Path>) -> crate::Result {
         use std::io::Write;
     
+        if let Some(dir) = cfg_file.as_ref().parent() {
+            fs::create_dir_all(dir)?
+        }
+
         let mut file = fs::File::create(cfg_file)?;
         let toml = toml::to_string_pretty(self)?;
         file.write_all(toml.as_ref())?;
