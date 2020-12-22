@@ -1,13 +1,13 @@
 mod recover;
 mod handle;
 mod track;
+mod tick;
 
 use {
     track::Track,
     handle::Handle,
-    snafu::ResultExt,
-    recover::Recoverable,
     rodio::{Source, Sample},
+    snafu::{Snafu, ResultExt},
     std::{
         fmt,
         error,
@@ -15,7 +15,7 @@ use {
     }
 };
 
-#[derive(Debug, snafu::Snafu)]
+#[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("Error playing sound: {}", source))]
     Play { source: PlayError },
@@ -65,8 +65,6 @@ where
     }
     
     fn set_source(&mut self, source: S) -> Result<(), Error> {
-        let (source, retr) = Recoverable::new(source);
-
         let sink = self
             .init_handle()
             .context(Stream)?
@@ -74,9 +72,8 @@ where
             .context(Play)?;
 
         sink.set_volume(self.volume);
-        sink.append(source);
         
-        self.current.replace(Track::new(sink, retr));
+        self.current.replace(Track::new(sink, source));
 
         Ok(())
     }
