@@ -32,6 +32,7 @@ where
         let source = Ticking::new(source, Self::TICK_INTERVAL, ticks.clone());
         let (source, retriever) = Recoverable::new(source);
 
+        sink.pause();
         sink.append(source);
 
         Track {
