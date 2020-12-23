@@ -440,7 +440,11 @@ impl <'a> State<'a> {
 
     fn seek(&mut self, op: impl Fn(Duration, Duration) -> Duration) {
         let new = op(self.core.player.elapsed(), Self::SEEK)
-            .min(self.core.queue.current().map(|track| track.duration).unwrap_or_default());
+            .min(self.core.queue
+                .current()
+                .map(|track| track.duration)
+                .unwrap_or_default()
+            );
 
         self.try_do(|this| this.core.player.seek(new).map_err(<_>::into));
     }
