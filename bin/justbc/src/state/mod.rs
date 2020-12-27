@@ -370,26 +370,24 @@ impl <'a> State<'a> {
                 self.widgets.nav.release().select(FIRST)
             },
             fetch::Response::Fan(fan) => {
-                self.try_do(|this| {
-                    match fan {
-                        Ok(mut fan) => {
-                            match &mut this.navigation.explore {
-                                ExploreState::Fan(existing) if existing.id == fan.id => {
-                                    existing.collection.append(&mut fan.collection);
-                                    this.widgets.nav.fan().set_loading(false);
-                                },
-                                _ => {
-                                    this.navigation.explore = ExploreState::Fan(fan);
-                                    this.widgets.nav.fan().collection.select(FIRST);
-                                }
+                self.try_do(|this| match fan {
+                    Ok(mut fan) => {
+                        match &mut this.navigation.explore {
+                            ExploreState::Fan(existing) if existing.id == fan.id => {
+                                existing.collection.append(&mut fan.collection);
+                                this.widgets.nav.fan().set_loading(false);
+                            },
+                            _ => {
+                                this.navigation.explore = ExploreState::Fan(fan);
+                                this.widgets.nav.fan().collection.select(FIRST);
                             }
-    
-                            Ok(())
-                        },
-                        Err(e) => {
-                            this.navigation.explore = ExploreState::blank();
-                            Err(e.into())
                         }
+
+                        Ok(())
+                    },
+                    Err(e) => {
+                        this.navigation.explore = ExploreState::blank();
+                        Err(e.into())
                     }
                 });
             },
@@ -467,10 +465,10 @@ impl <'a> State<'a> {
 
     pub fn update_device(&mut self) {
         self.try_do(|this| this
-                .core
-                .player
-                .update_device()
-                .map_err(<_>::into)
+            .core
+            .player
+            .update_device()
+            .map_err(<_>::into)
         );
     }
 
