@@ -159,6 +159,15 @@ where
         self.current.is_none()
     }
 
+    /// Returns whether the current track has been playing for
+    /// the provided duration.
+    pub fn passed(&self, duration: Duration) -> bool {
+        duration
+            .checked_sub(self.elapsed())
+            .map(|diff| diff <= Track::<S>::TICK_INTERVAL)
+            .unwrap_or(true)
+    }
+
     /// Seeks to the specified duration in the current track, if one exists.
     pub fn seek(&mut self, duration: Duration) -> Result<(), SeekError<S::Error>>
     where 

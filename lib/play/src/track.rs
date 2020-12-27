@@ -23,7 +23,7 @@ where
     S: Source + Iterator + Send + 'static,
     S::Item: Sample + Send
 {
-    const TICK_INTERVAL: Duration = Duration::from_millis(100);
+    pub const TICK_INTERVAL: Duration = Duration::from_millis(100);
 
     /// Creates a new Track using the provided `Sink`
     /// and prepares the provided `Source`.

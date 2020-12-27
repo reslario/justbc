@@ -61,10 +61,4 @@ impl Queue {
             self.current -= 1;
         }
     }
-
-    pub fn finished_current(&self, elapsed: Duration) -> bool {
-        self.current()
-            .map(|track| elapsed >= track.duration)
-            .unwrap_or_default()
-    }
 }

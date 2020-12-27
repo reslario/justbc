@@ -12,6 +12,7 @@ use {
     gen_tui::widgets::input::Message as InputMessage,
     std::{
         ops::Add,
+        cell::Cell,
         error::Error,
         time::Duration
     },
@@ -83,12 +84,40 @@ pub struct WidgetState {
 type Stream = stream::AudioStream<Box<bc_track::TrackStream>>;
 type Audio = mp3::Mp3<Stream>;
 
+#[derive(Default)]
+struct Next {
+    track: Option<Audio>,
+    pending: Cell<bool>
+}
+
+impl Next {
+    fn needed(&self) -> bool {
+        !self.pending.get()
+            && self.track.is_none()
+    }
+
+    fn set(&mut self, track: Audio) {
+        self.track.replace(track);
+        self.pending.set(false);
+    }
+
+    fn clear(&mut self) {
+        self.track = None;
+        self.pending.set(false);
+    }
+
+    fn take(&mut self) -> Option<Audio> {
+        self.pending.set(false);
+        self.track.take()
+    }
+}
+
 pub struct Core<'a> {
     bindings: &'a Bindings,
     fetcher: Fetcher,
     focus: Focus,
     pub queue: Queue,
-    next: Option<Audio>,
+    next: Next,
     pub player: Player<Audio>,
     pub release: Option<Release>,
 }
@@ -96,7 +125,7 @@ pub struct Core<'a> {
 impl Core<'_> {
     fn set_release(&mut self, release: Release, start_track: usize) {
         self.player.stop();
-        self.next = None;
+        self.next.clear();
         self.queue.clone_tracks(&release.tracks);
         self.queue.set_track(start_track);
         if let Some(track) = self.queue.current() {
@@ -130,6 +159,7 @@ impl Core<'_> {
     }
 
     fn fetch_track(&self, track: &Track) {
+        self.next.pending.set(true);
         self.fetcher.fetch_track(track.stream.mp3_128.clone())
     }
 
@@ -140,6 +170,14 @@ impl Core<'_> {
         } else {
             self.player.pause();
             false
+        }
+    }
+
+    fn maybe_fetch_next(&self) {
+        if self.next.needed() {
+            if let Some(track) = self.queue.prepare_next(self.player.elapsed()) {
+                self.fetch_track(track)
+            }
         }
     }
 }
@@ -159,7 +197,7 @@ impl <'a> State<'a> {
                 fetcher,
                 focus: <_>::default(),
                 queue: <_>::default(),
-                next: None,
+                next: <_>::default(),
                 player: Player::new(),
                 release: None,
             },
@@ -359,7 +397,7 @@ impl <'a> State<'a> {
                 self.try_do(|this| Ok(this
                     .core
                     .next
-                    .replace(Audio::new(Stream::new(stream?)?))
+                    .set(Audio::new(Stream::new(stream?)?))
                 ));
             }
         }
@@ -459,7 +497,11 @@ impl <'a> State<'a> {
     }
 
     fn finished_current_track(&self) -> bool {
-        self.core.queue.finished_current(self.core.player.elapsed())
+        self.core
+            .queue
+            .current()
+            .map(|track| self.core.player.passed(track.duration))
+            .unwrap_or_default()
     }
 
     pub fn update(&mut self) {
@@ -476,9 +518,7 @@ impl <'a> State<'a> {
             }
         }
 
-        if let Some(track) = self.core.queue.prepare_next(self.core.player.elapsed()) {
-            self.core.fetch_track(track)
-        }
+        self.core.maybe_fetch_next();
 
         if !self.core.player.is_paused() {
             self.widgets.release.play(self.core.queue.index())
