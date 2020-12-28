@@ -1,6 +1,10 @@
 mod explore;
+mod core;
 
-pub use explore::ExploreState;
+pub use {
+    self::core::Core,
+    explore::ExploreState
+};
 
 use {
     play::Player,
@@ -9,40 +13,25 @@ use {
     crate::play::Queue,
     media_keys::MediaKey,
     input::binds::Bindings,
+    self::core::{Audio, Stream, Focus},
     gen_tui::widgets::input::Message as InputMessage,
     std::{
         ops::Add,
-        cell::Cell,
         error::Error,
         time::Duration
     },
-    bandcamp_api::{
-        data::{
-            fans::Fan,
-            search::Search,
-            outlets::Outlet,
-            releases::{Release, Track}
-        }
-    },
     bc_tui::{
         nav::NavViewState,
+        tracks::PlayBarState,
         releases::ReleaseViewState,
-        tracks::PlayBarState
+    },
+    bandcamp_api::data::{
+        fans::Fan,
+        search::Search,
+        outlets::Outlet,
+        releases::Release
     }
 };
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-enum Focus {
-    Release,
-    Search,
-    NavBody
-}
-
-impl Default for Focus {
-    fn default() -> Self {
-        Focus::NavBody
-    }
-}
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Active {
@@ -51,8 +40,8 @@ pub enum Active {
 }
 
 impl Active {
-    fn next(self) -> Active {
-        if self == Active::Library {
+    fn cycle(&mut self) {
+        *self = if *self == Active::Library {
             Active::Explore
         } else {
             Active::Library
@@ -79,107 +68,6 @@ pub struct WidgetState {
     pub play_bar: PlayBarState,
     pub release: ReleaseViewState,
     pub release_scroll: u16
-}
-
-type Stream = stream::AudioStream<Box<bc_track::TrackStream>>;
-type Audio = mp3::Mp3<Stream>;
-
-#[derive(Default)]
-struct Next {
-    track: Option<Audio>,
-    pending: Cell<bool>
-}
-
-impl Next {
-    fn needed(&self) -> bool {
-        !self.pending.get()
-            && self.track.is_none()
-    }
-
-    fn set(&mut self, track: Audio) {
-        self.track.replace(track);
-        self.pending.set(false);
-    }
-
-    fn clear(&mut self) {
-        self.track = None;
-        self.pending.set(false);
-    }
-
-    fn take(&mut self) -> Option<Audio> {
-        self.pending.set(false);
-        self.track.take()
-    }
-}
-
-pub struct Core<'a> {
-    bindings: &'a Bindings,
-    fetcher: Fetcher,
-    focus: Focus,
-    pub queue: Queue,
-    next: Next,
-    pub player: Player<Audio>,
-    pub release: Option<Release>,
-}
-
-impl Core<'_> {
-    fn set_release(&mut self, release: Release, start_track: usize) {
-        self.player.stop();
-        self.next.clear();
-        self.queue.clone_tracks(&release.tracks);
-        self.queue.set_track(start_track);
-        if let Some(track) = self.queue.current() {
-            self.fetch_track(track)
-        }
-        self.release.replace(release);
-    }
-
-    fn play(&mut self, track: usize) {
-        self.player.stop();
-        self.queue.set_track(track);
-        if let Some(track) = self.queue.current() {
-            self.fetch_track(track)
-        }
-    }
-
-    fn step_track(&mut self, op: impl Fn(&mut Queue)) -> Option<usize> {
-        op(&mut self.queue);
-
-        let track = match self.queue.current() {
-            Some(track) => Some(track),
-            None => {
-                self.queue.set_track(0);
-                self.queue.current()
-            }
-        }?;
-
-        self.player.stop();
-        self.fetch_track(track);
-        self.queue.index().into()
-    }
-
-    fn fetch_track(&self, track: &Track) {
-        self.next.pending.set(true);
-        self.fetcher.fetch_track(track.stream.mp3_128.clone())
-    }
-
-    fn toggle_play(&mut self) -> bool {
-        if self.player.is_paused() {
-            self.player.resume();
-            true
-        } else {
-            self.player.pause();
-            false
-        }
-    }
-
-    fn maybe_fetch_next(&self) {
-        if self.next.needed() {
-            if let Some(track) = self.queue.prepare_next(self.player.elapsed()) {
-                self.fetch_track(track)
-            }
-        }
-    }
 }
 
 pub struct State<'a> {
@@ -228,7 +116,7 @@ impl <'a> State<'a> {
                 self.navigation.active = Active::Explore;
                 self.focus(Focus::NavBody)
             },
-            CycleTabs => self.navigation.active = self.navigation.active.next(),
+            CycleTabs => self.navigation.active.cycle(),
             SelectionDown => self.selection_down(),
             SelectionUp => self.selection_up(),
             ScrollDown => self.scroll_down(),
@@ -346,7 +234,7 @@ impl <'a> State<'a> {
                 InputMessage::Cancel => self.focus(Focus::NavBody),
                 InputMessage::Confirm => match self.navigation.active {
                     Active::Explore => {
-                        self.core.fetcher.query::<Search, _,>(input.text());
+                        self.core.fetcher.query::<Search, _>(input.text());
                         self.navigation.explore = ExploreState::loading();
                         self.focus(Focus::NavBody)
                     },
