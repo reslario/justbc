@@ -77,11 +77,11 @@ impl Fetcher {
     }
 
     pub fn fetch_track(&self, url: reqwest::Url) {
-        let api = self.api.clone();
+        let client = self.api.client().clone();
         let sender = self.sender.clone();
 
         self.pool.spawn(move || {
-            let stream = TrackStream::new(url, api.client().clone());
+            let stream = TrackStream::new(url, client);
             let _ = sender.send(Response::Track(stream.map(Box::new)));
         })
     }
