@@ -1,58 +1,37 @@
-#[derive(Copy, Clone)]
-enum Channel {
-    Left = 0,
-    Right = 1
-}
-
-impl std::ops::Not for Channel {
-    type Output = Channel;
-
-    fn not(self) -> Self::Output {
-        match self {
-            Channel::Left => Channel::Right,
-            Channel::Right => Channel::Left
-        }
-    }
-}
+pub type Sample = i16;
 
 pub struct Samples {
-    samples: [[f32; 1152]; 2],
-    len: u16,
-    current: u16,
-    channel: Channel
+    samples: Vec<i16>,
+    current: u16
 }
 
 impl Samples {
-    pub fn new(samples: [[f32; 1152]; 2], len: u16) -> Samples {
+    pub fn new(samples: Vec<Sample>) -> Samples {
         Samples {
             samples,
-            len,
-            current: 0,
-            channel: Channel::Left
+            current: 0
         }
     }
 
     pub fn len(&self) -> u16 {
-        self.len
+        self.samples.len() as _
     }
     
     pub fn set_current(&mut self, pos: u16) {
-        self.current = pos;
-        self.channel = Channel::Left
+        self.current = pos
     }
 }
 
 impl Iterator for Samples {
-    type Item = f32;
+    type Item = Sample;
 
     fn next(&mut self) -> Option<Self::Item> {
         let sample = self
-            .samples[self.channel as usize]
+            .samples
             .get(self.current as usize)
             .cloned();
 
-        self.current += self.channel as u16;
-        self.channel = !self.channel;
+        self.current += 1;
        
         sample
     }

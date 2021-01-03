@@ -1,12 +1,11 @@
 mod cache;
-mod tracked;
 mod samples;
+mod decode;
 
 use {
     cache::*,
-    tracked::*,
+    decode::*,
     samples::*,
-    puremp3::{Mp3Decoder, SampleRate},
     std::{
         ops::Range,
         time::Duration,
@@ -14,15 +13,19 @@ use {
     }
 };
 
-struct Frame {
-    samples: Samples,
-    sample_rate: SampleRate
+pub struct Frame {
+    pub samples: Samples,
+    pub channels: u16,
+    pub sample_rate: u32,
+    pub pos: u64
 }
 
 impl Frame {
     fn duration(&self) -> Duration {
-        let secs = self.samples.len() as f64
-            / self.sample_rate.hz() as f64;
+        let samples = self.samples.len() / self.channels;
+
+        let secs = samples as f64
+            / self.sample_rate as f64;
 
         Duration::from_secs_f64(secs)
     }
@@ -33,17 +36,8 @@ impl Frame {
 
     fn samples_in(&self, duration: Duration) -> u16 {
         let samples = duration.as_secs_f64()
-            / self.sample_rate.hz() as f64;
+            / self.sample_rate as f64;
         samples.round() as _
-    }
-}
-
-impl From<puremp3::Frame> for Frame {
-    fn from(frame: puremp3::Frame) -> Self {
-        Frame {
-            samples: Samples::new(frame.samples, frame.num_samples as _),
-            sample_rate: frame.header.sample_rate
-        }
     }
 }
 
@@ -65,8 +59,10 @@ impl Default for Current {
 
 fn empty_frame() -> Frame {
     Frame {
-        samples: Samples::new([[0.; 1152]; 2], 0),
-        sample_rate: SampleRate::Hz44100
+        samples: Samples::new(vec![]),
+        sample_rate: 44100,
+        channels: 2,
+        pos: 0
     }
 }
 
@@ -77,7 +73,7 @@ fn empty_range() -> Range<Duration> {
 /// Decodes an Mp3 from a reader.
 /// Supports seeking through the [SeekableSource](seek::SeekableSource) trait.
 pub struct Mp3<R: Read> {
-    decoder: Mp3Decoder<Tracked<R>>,
+    decoder: Decoder<R>,
     cache: FrameCache,
     current: Current
 }
@@ -85,16 +81,14 @@ pub struct Mp3<R: Read> {
 impl <R: Read> Mp3<R> {
     pub fn new(reader: R) -> Mp3<R> {
         Mp3 {
-            decoder: Mp3Decoder::new(Tracked::new(reader)),
+            decoder: Decoder::new(reader),
             cache: <_>::default(),
             current: <_>::default()
         }
     }
 
-    fn next_frame(&mut self) -> Result<(), puremp3::Error> {
-        let pos = self.decoder.get_ref().pos();
-
-        self.current.frame = self.decoder.next_frame()?.into();
+    fn next_frame(&mut self) -> Result<(), io::Error> {
+        self.current.frame = self.decoder.next_frame()?;
 
         self.current.range.start = self.current.range.end;
         self.current.range.end = self.current.range.start 
@@ -102,7 +96,7 @@ impl <R: Read> Mp3<R> {
 
         let cached = CachedFrame {
             range: self.current.range.clone(),
-            pos
+            pos: self.current.frame.pos
         };
 
         self.cache.set(self.current.frame_index, cached);
@@ -113,7 +107,7 @@ impl <R: Read> Mp3<R> {
 }
 
 impl <R: Read> Iterator for Mp3<R> {
-    type Item = f32;
+    type Item = i16;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.current.frame.samples
@@ -135,7 +129,7 @@ impl <R: Read> rodio::Source for Mp3<R> {
     }
 
     fn sample_rate(&self) -> u32 {
-        self.current.frame.sample_rate.hz()
+        self.current.frame.sample_rate as _
     }
 
     fn total_duration(&self) -> Option<Duration> {
@@ -144,7 +138,7 @@ impl <R: Read> rodio::Source for Mp3<R> {
 }
 
 impl <R: Read + Seek> seek::SeekableSource for Mp3<R> {
-    type Error = puremp3::Error;
+    type Error = io::Error;
 
     fn seek(&mut self, duration: Duration) -> Result<Duration, Self::Error> {
         if self.current.range.contains(&duration) {
@@ -159,7 +153,7 @@ impl <R: Read + Seek> seek::SeekableSource for Mp3<R> {
 }
 
 impl <R: Read + Seek> Mp3<R> {
-    fn find_left(&mut self, duration: Duration) -> Result<Duration, puremp3::Error> {
+    fn find_left(&mut self, duration: Duration) -> Result<Duration, io::Error> {
         let (index, frame) = self.cache
             .enumerated(..self.current.frame_index)
             .rfind(|(_, frame)| frame.range.start <= duration)
@@ -168,9 +162,7 @@ impl <R: Read + Seek> Mp3<R> {
         self.current.frame_index = index;
         self.current.range.end = frame.range.start;
 
-        self.decoder
-            .get_mut()
-            .seek(io::SeekFrom::Start(frame.pos))?;
+        self.decoder.seek(io::SeekFrom::Start(frame.pos))?;
 
         while {
             self.next_frame()?;
@@ -182,8 +174,8 @@ impl <R: Read + Seek> Mp3<R> {
         Ok(duration)
     }
 
-    fn find_right(&mut self, duration: Duration) -> Result<Duration, puremp3::Error> {
-        let (mut index, mut pos) = (self.current.frame_index, self.decoder.get_ref().pos());
+    fn find_right(&mut self, duration: Duration) -> Result<Duration, io::Error> {
+        let (mut index, mut pos) = (self.current.frame_index, self.current.frame.pos);
 
         for (idx, frame) in self.cache.enumerated(self.current.frame_index..) {
             if frame.range.contains(&duration) {
@@ -202,21 +194,10 @@ impl <R: Read + Seek> Mp3<R> {
 
         self.current.frame_index = index;
 
-        self.decoder
-            .get_mut()
-            .seek(io::SeekFrom::Start(pos))?;
+        self.decoder.seek(io::SeekFrom::Start(pos))?;
         
         while self.current.range.end < duration {
-            match self.next_frame() {
-                Err(puremp3::Error::IoError(e)) if e.kind() == io::ErrorKind::UnexpectedEof => 
-                    return self
-                        .cache
-                        .latest()
-                        .map(|frame| frame.range.end)
-                        .ok_or_else(|| e.into()),
-                Err(e) => return Err(e),
-                _ => {}
-            }
+            self.next_frame()?
         }
 
         self.current.frame.start_at(duration - self.current.range.start);

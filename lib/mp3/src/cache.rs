@@ -3,7 +3,7 @@ use std::{
     time::Duration
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CachedFrame {
     pub range: Range<Duration>,
     pub pos: u64
@@ -45,12 +45,5 @@ impl FrameCache {
             .cloned()
             .enumerate()
             .filter(|(_, frame)| !frame.placeholder())
-    }
-
-    pub fn latest(&self) -> Option<&CachedFrame> {
-        self.frames
-            .iter()
-            .rev()
-            .find(|frame| !frame.placeholder())
     }
 }

@@ -185,12 +185,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
-name = "bitstream-io"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "614aa3f2bac03707e62a84d18a48dd3d9ea6171313fd5e6a53b5054d8ae74601"
-
-[[package]]
 name = "blake2b_simd"
 version = "0.5.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1424,7 +1418,7 @@ dependencies = [
 name = "mp3"
 version = "0.1.0"
 dependencies = [
- "puremp3",
+ "minimp3-sys",
  "rodio",
  "seek",
 ]
@@ -1861,16 +1855,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eef52fac62d0ea7b9b4dc7da092aa64ea7ec3d90af6679422d3d7e0e14b6ee15"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "puremp3"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2b7efbb39e373af70c139e0611375fa6cad751fb93d528a610b55302710d883"
-dependencies = [
- "bitstream-io",
- "byteorder",
 ]
 
 [[package]]
