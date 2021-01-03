@@ -46,8 +46,12 @@ impl Next {
     }
 
     pub fn take(&mut self) -> Option<Audio> {
-        self.pending.set(false);
-        self.track.take()
+        self.track
+            .take()
+            .map(|track| {
+                self.pending.set(false);
+                track
+            })
     }
 }
 
