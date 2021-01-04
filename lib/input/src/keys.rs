@@ -42,6 +42,7 @@ impl fmt::Display for Key {
         FmtModifiers(self.modifiers).fmt(f)?;
 
         match self.code {
+            Char(' ') => string::SPACE,
             Char(c) => return c.fmt(f),
             F(n) => return write!(f, "f{}", n),
             Backspace => string::BACKSPACE,
@@ -157,6 +158,7 @@ fn parse_key(s: &str, modifiers: KeyModifiers) -> Result<Key, ParseError> {
     use KeyCode::*;
 
     let code = match s {
+        string::SPACE => Char(' '),
         string::BACKSPACE => Backspace,
         string::ENTER => Enter,
         string::LEFT => Left,
@@ -210,28 +212,40 @@ impl <'de> serde::Deserialize<'de> for Key {
 }
 
 mod string {
-    pub const SEP: &str = "+";
+    macro_rules! strings {
+        ($($name:ident = $val:literal),*) => {
+            $(
+                pub const $name: &str = $val;
+            )*
+        };
+    }
 
-    pub const CTRL: &str = "ctrl";
-    pub const ALT: &str = "alt";
-    pub const SHIFT: &str = "shift";
+    strings! {
+        SEP = "+",
 
-    pub const BACKSPACE: &str = "backspace"; 
-    pub const ENTER: &str = "enter"; 
-    pub const LEFT: &str = "left"; 
-    pub const RIGHT: &str = "right"; 
-    pub const UP: &str = "up"; 
-    pub const DOWN: &str = "down"; 
-    pub const HOME: &str = "home"; 
-    pub const END: &str = "end"; 
-    pub const PAGE_UP: &str = "pageup"; 
-    pub const PAGE_DOWN: &str = "pagedown"; 
-    pub const TAB: &str = "tab"; 
-    pub const BACK_TAB: &str = "backtab"; 
-    pub const DELETE: &str = "delete"; 
-    pub const INSERT: &str = "insert"; 
-    pub const NULL: &str = "null"; 
-    pub const ESC: &str = "esc"; 
+        CTRL = "ctrl",
+        ALT = "alt",
+        SHIFT = "shift",
+
+        SPACE = "space",
+        BACKSPACE = "backspace", 
+        ENTER = "enter", 
+        LEFT = "left", 
+        RIGHT = "right", 
+        UP = "up", 
+        DOWN = "down", 
+        HOME = "home", 
+        END = "end", 
+        PAGE_UP = "pageup", 
+        PAGE_DOWN = "pagedown", 
+        TAB = "tab", 
+        BACK_TAB = "backtab", 
+        DELETE = "delete", 
+        INSERT = "insert", 
+        NULL = "null", 
+        ESC = "esc"
+    }
+    
 }
 
 #[cfg(test)]
