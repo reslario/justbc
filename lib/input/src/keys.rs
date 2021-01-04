@@ -37,26 +37,9 @@ impl From<KeyEvent> for Key {
 
 impl fmt::Display for Key {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut modifiers = [""; 3];
-
-        if self.modifiers.intersects(KeyModifiers::CONTROL) {
-            modifiers[0] = string::CTRL
-        } 
-        
-        if self.modifiers.intersects(KeyModifiers::ALT) {
-            modifiers[1] = string::ALT
-        }
-
-        if self.modifiers.intersects(KeyModifiers::SHIFT) {
-            modifiers[2] = string::SHIFT
-        }
-
-        modifiers
-            .iter()
-            .filter(|m| !m.is_empty())
-            .try_for_each(|m| write!(f, "{}{}", m, string::SEP))?;
-
         use KeyCode::*;
+
+        FmtModifiers(self.modifiers).fmt(f)?;
 
         match self.code {
             Char(c) => return c.fmt(f),
@@ -81,6 +64,30 @@ impl fmt::Display for Key {
     }
 }
 
+struct FmtModifiers(KeyModifiers);
+
+impl fmt::Display for FmtModifiers {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let FmtModifiers(mdf) = self;
+
+        let mut write = |s| write!(f, "{}{}", s, string::SEP);
+
+        if mdf.intersects(KeyModifiers::CONTROL) {
+            write(string::CTRL)?
+        } 
+        
+        if mdf.intersects(KeyModifiers::ALT) {
+            write(string::ALT)?
+        }
+    
+        if mdf.intersects(KeyModifiers::SHIFT) {
+            write(string::SHIFT)?
+        }
+
+        Ok(())
+    }
+}
+
 impl Serialize for Key {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: serde::Serializer {
@@ -90,18 +97,18 @@ impl Serialize for Key {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ParseError {
-    MissingKey,
     InvalidModifier,
+    MissingKey(KeyModifiers),
     InvalidF(std::num::ParseIntError)
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ParseError::MissingKey => "missing key",
-            ParseError::InvalidModifier => "invalid modifier",
-            ParseError::InvalidF(e) => return write!(f, "invalid f key: {}", e)
-        }.fmt(f)
+            ParseError::InvalidModifier => f.write_str("invalid modifier"),
+            ParseError::MissingKey(mdf) => write!(f, "missing key after '{}'", FmtModifiers(*mdf)),
+            ParseError::InvalidF(e) => write!(f, "invalid f key: {}", e)
+        }
     }
 }
 
@@ -126,10 +133,7 @@ impl std::str::FromStr for Key {
             s = skip_char(rem)
         }
 
-        key_code(s).map(|code| Key {
-            code,
-            modifiers
-        })
+        parse_key(s, modifiers)
     }
 }
 
@@ -149,10 +153,10 @@ fn skip_char(s: &str) -> &str {
     chars.as_str()
 }
 
-fn key_code(s: &str) -> Result<KeyCode, ParseError> {
+fn parse_key(s: &str, modifiers: KeyModifiers) -> Result<Key, ParseError> {
     use KeyCode::*;
 
-    Ok(match s {
+    let code = match s {
         string::BACKSPACE => Backspace,
         string::ENTER => Enter,
         string::LEFT => Left,
@@ -172,15 +176,23 @@ fn key_code(s: &str) -> Result<KeyCode, ParseError> {
         s => {
             let mut chars = s.chars();
 
-            return match chars.next().ok_or(ParseError::MissingKey)? {
+            match chars
+                .next()
+                .ok_or(ParseError::MissingKey(modifiers))?
+            {
                 'f' if !chars.as_str().is_empty() => chars
                     .as_str()
                     .parse()
                     .map(F)
-                    .map_err(ParseError::InvalidF),
-                c => Ok(Char(c)),
+                    .map_err(ParseError::InvalidF)?,
+                c => Char(c),
             }
         }
+    };
+
+    Ok(Key {
+        code,
+        modifiers
     })
 }
 
@@ -286,6 +298,6 @@ mod test {
     fn missing_key() {
         let key = "shift+".parse::<Key>();
 
-        assert_eq!(Err(ParseError::MissingKey), key)
+        assert_eq!(Err(ParseError::MissingKey(KeyModifiers::SHIFT)), key)
     }
 }
