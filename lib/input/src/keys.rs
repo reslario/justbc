@@ -221,7 +221,7 @@ mod string {
     }
 
     strings! {
-        SEP = "+",
+        SEP = "-",
 
         CTRL = "ctrl",
         ALT = "alt",
@@ -261,7 +261,7 @@ mod test {
 
     #[test]
     fn all_modifiers_char() {
-        let key = "ctrl+alt+shift+a".parse().unwrap();
+        let key = "ctrl-alt-shift-a".parse().unwrap();
 
         assert_eq!(Key { code: KeyCode::Char('a'), modifiers: KeyModifiers::all() }, key)
     }
@@ -275,42 +275,42 @@ mod test {
 
     #[test]
     fn weird_order() {
-        let key = "alt+shift+ctrl+up".parse().unwrap();
+        let key = "alt-shift-ctrl-up".parse().unwrap();
 
         assert_eq!(Key { code: KeyCode::Up, modifiers: KeyModifiers::all() }, key)
     }
 
     #[test]
-    fn plus() {
-        let key = "ctrl++".parse().unwrap();
+    fn minus() {
+        let key = "ctrl--".parse().unwrap();
 
-        assert_eq!(Key { code: KeyCode::Char('+'), modifiers: KeyModifiers::CONTROL }, key)
+        assert_eq!(Key { code: KeyCode::Char('-'), modifiers: KeyModifiers::CONTROL }, key)
     }
 
     #[test]
     fn invalid_modifier() {
-        let key = "no+down".parse::<Key>();
+        let key = "no-down".parse::<Key>();
 
         assert_eq!(Err(ParseError::InvalidModifier), key)
     }
 
     #[test]
     fn f_key() {
-        let key = "alt+f12".parse().unwrap();
+        let key = "alt-f12".parse().unwrap();
 
         assert_eq!(Key { code: KeyCode::F(12), modifiers: KeyModifiers::ALT }, key)
     }
 
     #[test]
     fn invalid_f() {
-        let key = "alt+ftp".parse::<Key>();
+        let key = "alt-ftp".parse::<Key>();
 
         assert!(matches!(key, Err(ParseError::InvalidF(_))))
     }
 
     #[test]
     fn missing_key() {
-        let key = "shift+".parse::<Key>();
+        let key = "shift-".parse::<Key>();
 
         assert_eq!(Err(ParseError::MissingKey(KeyModifiers::SHIFT)), key)
     }
