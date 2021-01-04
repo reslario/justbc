@@ -1,5 +1,5 @@
 use {
-    std::collections::HashMap,
+    indexmap::IndexMap,
     serde::{Serialize, Deserialize},
     crate::{
         Command,
@@ -10,7 +10,7 @@ use {
 #[derive(Serialize, Deserialize)]
 pub struct Bindings {
     #[serde(flatten)]
-    map: HashMap<Key, Command>
+    map: IndexMap<Key, Command>
 }
 
 impl Bindings {
