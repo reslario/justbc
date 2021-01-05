@@ -83,14 +83,6 @@ const DEFAULT_BINDS: &[(Key, Command)] = {
             ScrollDown
         ),
         (
-            Key { code: Left, modifiers: M::ALT },
-            PageLeft
-        ),
-        (
-            Key { code: Right, modifiers: M::ALT },
-            PageRight
-        ),
-        (
             Key { code: Enter, modifiers: M::NONE },
             Confirm
         ),

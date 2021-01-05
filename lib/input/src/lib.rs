@@ -22,8 +22,6 @@ pub enum Command {
     SelectionDown,
     ScrollUp,
     ScrollDown,
-    PageLeft,
-    PageRight,
     Confirm,
     VolumeUp,
     VolumeDown,
