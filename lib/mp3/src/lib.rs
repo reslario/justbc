@@ -7,6 +7,7 @@ use {
     decode::*,
     samples::*,
     std::{
+        mem,
         ops::Range,
         time::Duration,
         io::{self, Read, Seek}
@@ -59,7 +60,7 @@ impl Default for Current {
 
 fn empty_frame() -> Frame {
     Frame {
-        samples: Samples::new(vec![]),
+        samples: <_>::default(),
         sample_rate: 44100,
         channels: 2,
         pos: 0
@@ -88,7 +89,10 @@ impl <R: Read> Mp3<R> {
     }
 
     fn next_frame(&mut self) -> Result<(), io::Error> {
-        self.current.frame = self.decoder.next_frame()?;
+        self.current.frame = {
+            let samples = mem::take(&mut self.current.frame.samples);
+            self.decoder.next_frame(samples.into_buf())?
+        };
 
         self.current.range.start = self.current.range.end;
         self.current.range.end = self.current.range.start 

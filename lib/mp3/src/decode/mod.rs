@@ -7,7 +7,7 @@ use {
     minimp3_sys as minimp3,
     crate::{
         Frame,
-        samples::{Sample, Samples}
+        samples::{Samples, SampleBuf}
     },
     std::{
         mem::MaybeUninit,
@@ -15,10 +15,8 @@ use {
     },
 };
 
-const MAX_FRAME_SAMPLES: usize = minimp3::MINIMP3_MAX_SAMPLES_PER_FRAME as _;
-
 impl Frame {
-    fn new(samples: Vec<Sample>, info: minimp3::mp3dec_frame_info_t, pos: u64) -> Frame {
+    fn new(samples: SampleBuf, info: minimp3::mp3dec_frame_info_t, pos: u64) -> Frame {
         Frame {
             samples: Samples::new(samples),
             channels: info.channels as _,
@@ -50,10 +48,10 @@ impl <R: Read> Decoder<R> {
         }
     }
 
-    pub fn next_frame(&mut self) -> io::Result<Frame> {
+    pub fn next_frame(&mut self, buf: SampleBuf) -> io::Result<Frame> {
         self.buf.fill(&mut self.reader)?;
 
-        let (samples, frame_info) = self.decode_frame();
+        let (samples, frame_info) = self.decode_frame(buf);
 
         self.buf.consume(frame_info.frame_bytes as _);
         let pos = self.pos() + frame_info.frame_offset as u64;
@@ -65,10 +63,10 @@ impl <R: Read> Decoder<R> {
         self.reader.pos() - self.buf.len() as u64
     }
 
-    fn decode_frame(&mut self) -> (Vec<Sample>, minimp3::mp3dec_frame_info_t) {
+    fn decode_frame(&mut self, mut samples: SampleBuf) -> (SampleBuf, minimp3::mp3dec_frame_info_t) {
         let mut frame_info = MaybeUninit::uninit();
-        let mut samples = Vec::with_capacity(MAX_FRAME_SAMPLES);
         let data = self.buf.as_slice();
+        samples.set_max_len();
 
         unsafe {
             let num = minimp3::mp3dec_decode_frame(
@@ -77,11 +75,11 @@ impl <R: Read> Decoder<R> {
                 data.len() as _,
                 samples.as_mut_ptr(),
                 frame_info.as_mut_ptr()
-            ) as usize;
+            ) as u16;
     
             let frame_info = frame_info.assume_init();
     
-            samples.set_len(num * frame_info.channels as usize);
+            samples.set_len(num * frame_info.channels as u16);
     
             (samples, frame_info)
         }
