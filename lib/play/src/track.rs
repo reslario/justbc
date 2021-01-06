@@ -78,8 +78,8 @@ where
                 self.retriever = retr;
                 self.sink.append(source);
 
-                if !paused {
-                    self.play()
+                if paused {
+                    self.pause()
                 }
             })
             .map_err(|_| CannotResume)
