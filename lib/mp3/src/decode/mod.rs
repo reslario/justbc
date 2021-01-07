@@ -34,11 +34,11 @@ pub struct Decoder<R> {
 
 impl <R: Read> Decoder<R> {
     pub fn new(reader: R) -> Decoder<R> {
-        let mut decoder = MaybeUninit::uninit();
+        let mut decoder = uninit_box();
 
         let decoder = unsafe {
             minimp3::mp3dec_init(decoder.as_mut_ptr());
-            decoder.assume_init().into()
+            assume_init_box(decoder)
         };
 
         Decoder {
@@ -84,6 +84,21 @@ impl <R: Read> Decoder<R> {
             (samples, frame_info)
         }
     }
+}
+
+// this is a hacky workaround that can be replaced 
+// with Box::new_uninit() once it's stabilised
+fn uninit_box<T>() -> Box<MaybeUninit<T>> {
+    let mut vec = Vec::with_capacity(1);
+    let ptr = vec.as_mut_ptr();
+    std::mem::forget(vec);
+    unsafe { Box::from_raw(ptr) }
+}
+
+// can be replaced with Box<MaybeUninit<T>>::assume_init()
+// once it's stabilised
+fn assume_init_box<T>(bx: Box<MaybeUninit<T>>) -> Box<T> {
+    unsafe { Box::from_raw(Box::into_raw(bx).cast()) }
 }
 
 impl <R: Seek> Seek for Decoder<R> {
