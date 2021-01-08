@@ -1,24 +1,21 @@
-use std::{
-    ops::Range,
-    time::Duration
-};
+use crate::span::FrameSpan;
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct CachedFrame {
-    pub range: Range<Duration>,
+    pub span: FrameSpan,
     pub pos: u64
 }
 
 impl CachedFrame {
     fn placeholder(&self) -> bool {
-        self.range.is_empty()
+        self.span.is_empty()
     }
 }
 
 impl Default for CachedFrame {
     fn default() -> Self {
         CachedFrame {
-            range: super::empty_range(),
+            span: FrameSpan::empty(),
             pos: 0
         }
     }

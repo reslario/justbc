@@ -1,18 +1,21 @@
 mod cache;
 mod samples;
 mod decode;
+mod span;
 
 use {
     cache::*,
     decode::*,
     samples::*,
+    span::FrameSpan,
     std::{
         mem,
-        ops::Range,
         time::Duration,
         io::{self, Read, Seek}
     }
 };
+
+const MICROS_PER_SEC: u32 = Duration::from_secs(1).as_micros() as _;
 
 pub struct Frame {
     pub samples: Samples,
@@ -22,13 +25,15 @@ pub struct Frame {
 }
 
 impl Frame {
-    fn duration(&self) -> Duration {
+    fn micros(&self) -> u32 {
         let samples = self.samples.len() / self.channels;
 
         let secs = samples as f64
             / self.sample_rate as f64;
 
-        Duration::from_secs_f64(secs)
+        let micros = secs * MICROS_PER_SEC as f64;
+
+        micros.floor() as u32
     }
 
     fn start_at(&mut self, duration: Duration) {
@@ -45,7 +50,7 @@ impl Frame {
 struct Current {
     frame: Frame,
     frame_index: usize,
-    range: Range<Duration>
+    span: FrameSpan
 }
 
 impl Default for Current {
@@ -53,7 +58,7 @@ impl Default for Current {
         Current {
             frame: empty_frame(),
             frame_index: 0,
-            range: empty_range()
+            span: FrameSpan::empty()
         }
     }
 }
@@ -65,10 +70,6 @@ fn empty_frame() -> Frame {
         channels: 2,
         pos: 0
     }
-}
-
-fn empty_range() -> Range<Duration> {
-    <_>::default()..<_>::default()
 }
 
 /// Decodes an Mp3 from a reader.
@@ -94,12 +95,13 @@ impl <R: Read> Mp3<R> {
             self.decoder.next_frame(samples.into_buf())?
         };
 
-        self.current.range.start = self.current.range.end;
-        self.current.range.end = self.current.range.start 
-            + self.current.frame.duration();
+        self.current.span = FrameSpan::new(
+            self.current.span.end(),
+            self.current.frame.micros()
+        );
 
         let cached = CachedFrame {
-            range: self.current.range.clone(),
+            span: self.current.span,
             pos: self.current.frame.pos
         };
 
@@ -145,10 +147,10 @@ impl <R: Read + Seek> seek::SeekableSource for Mp3<R> {
     type Error = io::Error;
 
     fn seek(&mut self, duration: Duration) -> Result<Duration, Self::Error> {
-        if self.current.range.contains(&duration) {
-            self.current.frame.start_at(duration - self.current.range.start);
+        if self.current.span.contains(duration) {
+            self.current.frame.start_at(duration - self.current.span.start_duration());
             Ok(duration)
-        } else if self.current.range.start > duration {
+        } else if self.current.span.start_duration() > duration {
             self.find_left(duration)
         } else {
             self.find_right(duration)
@@ -160,20 +162,20 @@ impl <R: Read + Seek> Mp3<R> {
     fn find_left(&mut self, duration: Duration) -> Result<Duration, io::Error> {
         let (index, frame) = self.cache
             .enumerated(..self.current.frame_index)
-            .rfind(|(_, frame)| frame.range.start <= duration)
+            .rfind(|(_, frame)| frame.span.start_duration() <= duration)
             .unwrap_or_default();
 
         self.current.frame_index = index;
-        self.current.range.end = frame.range.start;
+        self.current.span = frame.span.shift_back();
 
         self.decoder.seek(io::SeekFrom::Start(frame.pos))?;
 
         while {
             self.next_frame()?;
-            self.current.range.end < duration
+            self.current.span.end_duration() < duration
         } {}
 
-        self.current.frame.start_at(duration - self.current.range.start);
+        self.current.frame.start_at(duration - self.current.span.start_duration());
 
         Ok(duration)
     }
@@ -182,13 +184,13 @@ impl <R: Read + Seek> Mp3<R> {
         let (mut index, mut pos) = (self.current.frame_index, self.current.frame.pos);
 
         for (idx, frame) in self.cache.enumerated(self.current.frame_index..) {
-            if frame.range.contains(&duration) {
+            if frame.span.contains(duration) {
                 index = idx;
                 pos = frame.pos;
                 break
             }
 
-            if frame.range.start <= duration {
+            if frame.span.start_duration() <= duration {
                 index = idx;
                 pos = frame.pos;
             } else {
@@ -200,11 +202,11 @@ impl <R: Read + Seek> Mp3<R> {
 
         self.decoder.seek(io::SeekFrom::Start(pos))?;
         
-        while self.current.range.end < duration {
+        while self.current.span.end_duration() < duration {
             self.next_frame()?
         }
 
-        self.current.frame.start_at(duration - self.current.range.start);
+        self.current.frame.start_at(duration - self.current.span.start_duration());
 
         Ok(duration)
     }
