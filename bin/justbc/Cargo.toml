@@ -5,8 +5,8 @@ authors = ["reslario <reslario.code@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-crossterm = "0.18.2"
-tui = { version = "0.13.0", default-features = false, features = ["crossterm"] }
+crossterm = "0.19.0"
+tui = { version = "0.14.0", default-features = false, features = ["crossterm"] }
 bc-tui = { path = "../../lib/bc-tui" }
 gen-tui = { path = "../../lib/gen-tui", features = ["handle-input"] }
 bandcamp-api = { path = "../../lib/bandcamp-api" }

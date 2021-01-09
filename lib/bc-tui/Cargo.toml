@@ -7,5 +7,5 @@ edition = "2018"
 [dependencies]
 bandcamp-api = { path = "../bandcamp-api", default-features = false }
 gen-tui = { path = "../gen-tui" }
-tui = { version = "0.13.0", default-features = false }
+tui = { version = "0.14.0", default-features = false }
 builder = { path = "../builder" }
