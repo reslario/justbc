@@ -10,11 +10,14 @@ use {
     play::Player,
     fetch::Fetcher,
     explore::Explore,
-    crate::play::Queue,
     media_keys::MediaKey,
     input::binds::Bindings,
     self::core::{Audio, Stream, Focus},
     gen_tui::widgets::input::Message as InputMessage,
+    crate::{
+        play::Queue,
+        cfg::{self, StateConfig}
+    },
     std::{
         ops::Add,
         error::Error,
@@ -70,15 +73,22 @@ pub struct WidgetState {
     pub release_scroll: u16
 }
 
-pub struct State<'a> {
-    pub core: Core<'a>,
+pub struct State {
+    pub core: Core,
     pub navigation: Navigation,
     pub widgets: WidgetState,
     pub error: Option<Box<dyn Error>>
 }
 
-impl <'a> State<'a> {
-    pub fn new(bindings: &'a Bindings, fetcher: Fetcher) -> State {
+impl State {
+    pub fn new(cfg: StateConfig, fetcher: Fetcher) -> State {
+        let mut player = Player::new();
+        player.set_volume(cfg.general.volume);
+
+        let bindings = cfg.bindings
+            .map(Bindings::patched)
+            .unwrap_or_default();
+        
         State {
             core: Core {
                 bindings,
@@ -86,7 +96,7 @@ impl <'a> State<'a> {
                 focus: <_>::default(),
                 queue: <_>::default(),
                 next: <_>::default(),
-                player: Player::new(),
+                player,
                 release: None,
             },
             navigation: <_>::default(),
@@ -408,6 +418,15 @@ impl <'a> State<'a> {
 
         if !self.core.player.is_paused() {
             self.widgets.release.play(self.core.queue.index())
+        }
+    }
+
+    pub fn into_config(self) -> StateConfig {
+        StateConfig {
+            general: cfg::General {
+                volume: self.core.player.volume()
+            },
+            bindings: self.core.bindings.into()
         }
     }
 }

@@ -16,14 +16,12 @@ use {
 
 #[derive(StructOpt, StructOptToml, Serialize, Deserialize)]
 pub struct Config {
+    #[serde(flatten)]
+    #[structopt(flatten)]
+    pub state: StateConfig,
     #[serde(default)]
     #[structopt(flatten)]
-    pub general: General,
-    #[serde(default)]
-    #[structopt(flatten)]
-    pub gfx: Graphics,
-    #[structopt(skip)]
-    pub bindings: Option<Bindings>
+    pub gfx: Graphics
 }
 
 impl Config {
@@ -51,6 +49,15 @@ impl Config {
         
         Ok(())
     }
+}
+
+#[derive(StructOpt, StructOptToml, Serialize, Deserialize)]
+pub struct StateConfig {
+    #[serde(default)]
+    #[structopt(flatten)]
+    pub general: General,
+    #[structopt(skip)]
+    pub bindings: Option<Bindings>
 }
 
 #[derive(StructOpt, StructOptToml, Serialize, Deserialize)]

@@ -55,8 +55,8 @@ impl Next {
     }
 }
 
-pub struct Core<'a> {
-    pub(super) bindings: &'a Bindings,
+pub struct Core {
+    pub(super) bindings: Bindings,
     pub(super) fetcher: Fetcher,
     pub(super) focus: Focus,
     pub queue: Queue,
@@ -65,7 +65,7 @@ pub struct Core<'a> {
     pub release: Option<Release>,
 }
 
-impl Core<'_> {
+impl Core {
     pub fn set_release(&mut self, release: Release, start_track: usize) {
         self.player.stop();
         self.next.clear();

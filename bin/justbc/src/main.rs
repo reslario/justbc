@@ -11,7 +11,6 @@ use {
     term::Terminal,
     fetch::Fetcher,
     bandcamp_api::Api,
-    input::binds::Bindings,
     directories::ProjectDirs,
     std::{
         thread,
@@ -37,19 +36,11 @@ fn run() -> Result {
     let mut config = Config::load(&cfg_file)?;
 
     let bindings = config
-        .bindings
-        .map(Bindings::patched)
-        .unwrap_or_default();
-
     let mut terminal = term::terminal()?;
-
-    terminal.clear()?;
 
     let (api, receiver) = Fetcher::new(Api::new());
 
-    let mut state = State::new(&bindings, api);
-
-    state.core.player.set_volume(config.general.volume);
+    let mut state = State::new(config.state, api);
 
     let events = Events::new(receiver)?;
 
@@ -57,8 +48,7 @@ fn run() -> Result {
 
     terminal.clear()?;
 
-    config.general.volume = state.core.player.volume();
-    config.bindings = bindings.into();
+    config.state = state.into_config();
 
     config.save(cfg_file)
 }
