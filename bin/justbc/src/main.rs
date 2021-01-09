@@ -35,7 +35,6 @@ fn run() -> Result {
 
     let mut config = Config::load(&cfg_file)?;
 
-    let bindings = config
     let mut terminal = term::terminal()?;
 
     let (api, receiver) = Fetcher::new(Api::new());
