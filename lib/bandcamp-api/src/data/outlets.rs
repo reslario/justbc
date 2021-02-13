@@ -52,6 +52,7 @@ pub enum OutletKind {
 }
 
 #[cfg(feature = "query")]
+#[allow(clippy::unnecessary_wraps)]
 fn guess_outlet_kind<'de, D>(deserializer: D) -> Result<OutletKind, D::Error>
 where D: serde::Deserializer<'de> {
     // there's no proper way to find out whether an outlet
