@@ -38,7 +38,7 @@ impl TrackStream {
                 .get(self.url.clone())
                 .header(header::RANGE, format!("bytes={}-", pos))
                 .send()
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+                .map_err(io::Error::other)?;
 
             self.pos = pos;
         }

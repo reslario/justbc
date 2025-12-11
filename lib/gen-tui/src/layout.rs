@@ -25,19 +25,19 @@ pub trait RectExt: Sized + Copy {
             .grow_bottom(margin.bottom)
     }
 
-    fn from_left(self, width: u16) -> Self;
-    fn from_right(self, width: u16) -> Self;
-    fn from_top(self, height: u16) -> Self;
-    fn from_bottom(self, height: u16) -> Self;
+    fn scale_from_left(self, width: u16) -> Self;
+    fn scale_from_right(self, width: u16) -> Self;
+    fn scale_from_top(self, height: u16) -> Self;
+    fn scale_from_bottom(self, height: u16) -> Self;
 
     #[inline]
     fn split_x(self, x: u16) -> (Self, Self) {
-        (self.from_left(x), self.shrink_left(x))
+        (self.scale_from_left(x), self.shrink_left(x))
     }
 
     #[inline]
     fn split_y(self, y: u16) -> (Self, Self) {
-        (self.from_top(y), self.shrink_top(y))
+        (self.scale_from_top(y), self.shrink_top(y))
     }
 
     fn split_ratio_x(self, ratio: f32) -> (Self, Self);
@@ -50,9 +50,9 @@ pub trait RectExt: Sized + Copy {
         let (top_left, _) = left.split_ratio_y(0.5);
 
         top_left
-            .from_right(width / 2)
+            .scale_from_right(width / 2)
             .grow_right(width / 2)
-            .from_bottom(height / 2)
+            .scale_from_bottom(height / 2)
             .grow_bottom(height / 2)
     }
 }
@@ -119,22 +119,22 @@ impl RectExt for tui::layout::Rect {
     }
 
     #[inline]
-    fn from_left(self, width: u16) -> Self {
+    fn scale_from_left(self, width: u16) -> Self {
         self.shrink_right(self.width.saturating_sub(width))
     }
 
     #[inline]
-    fn from_right(self, width: u16) -> Self {
+    fn scale_from_right(self, width: u16) -> Self {
         self.shrink_left(self.width.saturating_sub(width))
     }
 
     #[inline]
-    fn from_top(self, height: u16) -> Self {
+    fn scale_from_top(self, height: u16) -> Self {
         self.shrink_bottom(self.height.saturating_sub(height))
     }
 
     #[inline]
-    fn from_bottom(self, height: u16) -> Self {
+    fn scale_from_bottom(self, height: u16) -> Self {
         self.shrink_top(self.height.saturating_sub(height))
     }
 

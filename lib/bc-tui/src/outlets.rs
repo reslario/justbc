@@ -100,10 +100,10 @@ fn fmt_release(release: &Release) -> String {
         ReleaseKind::Album => symbols::ALBUM,
     };
 
-    format!("{} {}", icon, fmt_release_info(&release))
+    format!("{} {}", icon, fmt_release_info(release))
 }
 
-fn fmt_release_info(info: &Release) -> Cow<str> {
+fn fmt_release_info(info: &Release) -> Cow<'_, str> {
     info.artist
         .as_ref()
         .map(|artist| crate::fmt_release(artist, &info.title))

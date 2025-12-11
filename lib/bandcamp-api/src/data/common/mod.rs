@@ -17,10 +17,7 @@ pub struct Id<T> {
 
 impl<T> Clone for Id<T> {
     fn clone(&self) -> Self {
-        Id {
-            value: self.value,
-            _marker: <_>::default(),
-        }
+        *self
     }
 }
 

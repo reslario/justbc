@@ -53,8 +53,7 @@ impl TextInputState {
     pub fn decr_cursor(&mut self) {
         self.cursor = self.text[..self.cursor]
             .char_indices()
-            .rev()
-            .next()
+            .next_back()
             .unwrap_or_default()
             .0
     }

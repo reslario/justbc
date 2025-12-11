@@ -85,9 +85,9 @@ fn draw_spans(spans: Spans, area: Rect, start: usize, buf: &mut Buffer) {
 type Grapheme<'a> = StyledGrapheme<'a>;
 
 fn repeated_graphemes<'a>(spans: &'a Spans<'a>) -> impl Iterator<Item = Grapheme<'a>> {
-    graphemes(&spans)
+    graphemes(spans)
         .chain(three_spaces())
-        .chain(graphemes(&spans))
+        .chain(graphemes(spans))
 }
 
 fn graphemes<'a>(Spans(spans): &'a Spans<'a>) -> impl Iterator<Item = Grapheme<'a>> {
@@ -97,11 +97,13 @@ fn graphemes<'a>(Spans(spans): &'a Spans<'a>) -> impl Iterator<Item = Grapheme<'
 }
 
 fn three_spaces<'a>() -> impl Iterator<Item = Grapheme<'a>> {
-    std::iter::repeat(Grapheme {
-        symbol: " ",
-        style: <_>::default(),
-    })
-    .take(SPACES)
+    std::iter::repeat_n(
+        Grapheme {
+            symbol: " ",
+            style: <_>::default(),
+        },
+        SPACES,
+    )
 }
 
 fn draw_grapheme(grapheme: Grapheme, area: Rect, offset: usize, buf: &mut Buffer) {

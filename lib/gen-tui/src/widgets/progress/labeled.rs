@@ -12,20 +12,15 @@ use {
 };
 
 /// Determines the placement of the values of a [labeled progress bar](Labeled).
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub enum Placement {
     /// To the left of the bar
+    #[default]
     Left,
     /// To the right of the bar
     Right,
     /// The current value on the left, and the end value on the right
     Split,
-}
-
-impl Default for Placement {
-    fn default() -> Self {
-        Placement::Left
-    }
 }
 
 /// A customisable progress bar that displays the

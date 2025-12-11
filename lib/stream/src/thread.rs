@@ -50,10 +50,9 @@ where
         F: Fn(&mpsc::Receiver<FetchResult>) -> Result<FetchResult, E>,
     {
         if self.pending {
-            f(&self.receiver).ok().map(|res| {
-                self.pending = false;
-                res
-            })
+            let result = f(&self.receiver).ok();
+            self.pending = result.is_none();
+            result
         } else {
             None
         }

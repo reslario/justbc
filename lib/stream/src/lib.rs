@@ -106,7 +106,7 @@ fn sync<R>(reader: R) -> Synced<R> {
     sync::RwLock::new(reader).into()
 }
 
-fn lock<R>(reader: &Synced<R>) -> sync::RwLockWriteGuard<R> {
+fn lock<R>(reader: &Synced<R>) -> sync::RwLockWriteGuard<'_, R> {
     reader.write().unwrap()
 }
 
@@ -196,6 +196,7 @@ mod test {
     fn output_matches() {
         let stream = AudioStream::new(io::Cursor::new(bytes())).unwrap();
 
+        #[allow(clippy::unbuffered_bytes)]
         let mut iter = stream.bytes().map(Result::unwrap).zip(bytes());
 
         assert!(

@@ -16,16 +16,11 @@ use {
     },
 };
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 enum Show<'a> {
+    #[default]
     Library,
     Explore(Explore<'a>),
-}
-
-impl<'a> Default for Show<'a> {
-    fn default() -> Self {
-        Show::Library
-    }
 }
 
 #[derive(Copy, Clone)]
@@ -111,9 +106,9 @@ impl<'a> NavView<'a> {
 
         let (left, _) = area.split_ratio_x(0.5);
         let tab_area = left
-            .from_right(center_offset)
+            .scale_from_right(center_offset)
             .grow_right(center_offset)
-            .from_top(1);
+            .scale_from_top(1);
 
         let titles = ["Library", "Explore"]
             .iter()
@@ -214,19 +209,15 @@ impl<'a> NavView<'a> {
     }
 }
 
+#[derive(Default)]
 enum BodyState {
+    #[default]
     Blank,
     Fan(FanViewState),
     Results(ResultListState),
     Release(ReleaseViewState),
     Outlet(OutletViewState),
     Spinner(SpinnerState),
-}
-
-impl Default for BodyState {
-    fn default() -> Self {
-        BodyState::Blank
-    }
 }
 
 #[derive(Default)]
@@ -268,7 +259,7 @@ impl NavViewState {
         match &self.body {
             BodyState::Blank | BodyState::Spinner(_) => return None,
             BodyState::Outlet(o) => o,
-            BodyState::Release(r) => &r,
+            BodyState::Release(r) => r,
             BodyState::Results(r) => r,
             BodyState::Fan(f) => &f.collection,
         }

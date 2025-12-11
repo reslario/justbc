@@ -70,7 +70,7 @@ impl<'a> PlayBar<'a> {
             f32::round(self.volume * 100.)
         );
 
-        let Rect { x, y, .. } = area.from_right(WIDTH).shrink_top(1);
+        let Rect { x, y, .. } = area.scale_from_right(WIDTH).shrink_top(1);
 
         buf.set_span(x, y, &Span::styled(text, self.style), WIDTH);
 

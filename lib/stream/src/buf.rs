@@ -76,7 +76,7 @@ impl StreamBuf {
 
     fn advance(&mut self, by: usize) -> &mut [u8] {
         self.move_left(by);
-        self.from_end(by)
+        self.slice_from_end(by)
     }
 
     fn advance_extend(&mut self, by: usize) -> &mut [u8] {
@@ -90,7 +90,7 @@ impl StreamBuf {
             self.lengthen(space);
         }
 
-        self.from_end(by)
+        self.slice_from_end(by)
     }
 
     fn lengthen(&mut self, by: usize) {
@@ -98,7 +98,7 @@ impl StreamBuf {
         self.cursor.extend(by);
     }
 
-    fn from_end(&mut self, num: usize) -> &mut [u8] {
+    fn slice_from_end(&mut self, num: usize) -> &mut [u8] {
         let start = self.len() - num;
         &mut self.buf[start..]
     }
@@ -107,7 +107,7 @@ impl StreamBuf {
         let space = self.space();
 
         if bytes.len() <= space {
-            self.extend(&bytes)
+            self.extend(bytes)
         } else {
             let split = bytes.len().min(space);
             let (a, b) = bytes.split_at(split);

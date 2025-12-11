@@ -57,7 +57,7 @@ impl<'a> ReleaseView<'a> {
                 tui::symbols::DOT,
                 self.release.tracks.len(),
                 minutes,
-                if minutes > 1 { 's' } else { '​' }
+                if minutes > 1 { 's' } else { '\u{200B}' }
             )
         }
     }
@@ -130,7 +130,7 @@ impl<'a> ReleaseView<'a> {
     }
 }
 
-fn track_text(track: &Track, width: u16, style: Style) -> Spans {
+fn track_text(track: &Track, width: u16, style: Style) -> Spans<'_> {
     const SPACE: &str = "   ";
     const SPACES: usize = SPACE.len();
 
@@ -234,14 +234,14 @@ impl ReleaseViewState {
         }
     }
 
-    fn highlight_playing(&self, tracks: &mut Vec<ListItem>, style: Style) {
+    fn highlight_playing(&self, tracks: &mut [ListItem], style: Style) {
         use std::mem;
 
         if let Some(index) = self.playing {
             let mut playing = ListItem::new(Text { lines: vec![] });
 
             mem::swap(&mut tracks[index], &mut playing);
-            mem::swap(&mut tracks[index], &mut playing.style(style))
+            tracks[index] = playing.style(style)
         }
     }
 }

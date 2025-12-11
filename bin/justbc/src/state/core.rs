@@ -7,17 +7,12 @@ use {
     std::cell::Cell,
 };
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub enum Focus {
     Release,
     Search,
+    #[default]
     NavBody,
-}
-
-impl Default for Focus {
-    fn default() -> Self {
-        Focus::NavBody
-    }
 }
 
 pub type Stream = stream::AudioStream<Box<bc_track::TrackStream>>;
@@ -45,9 +40,8 @@ impl Next {
     }
 
     pub fn take(&mut self) -> Option<Audio> {
-        self.track.take().map(|track| {
+        self.track.take().inspect(|_| {
             self.pending.set(false);
-            track
         })
     }
 }

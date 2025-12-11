@@ -20,9 +20,10 @@ use {
     std::{error::Error, ops::Add, time::Duration},
 };
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Default)]
 pub enum Active {
     Library,
+    #[default]
     Explore,
 }
 
@@ -36,14 +37,9 @@ impl Active {
     }
 }
 
-impl Default for Active {
-    fn default() -> Self {
-        Active::Explore
-    }
-}
-
 #[derive(Default)]
 pub struct Navigation {
+    #[allow(unused)]
     pub library: (),
     pub explore: ExploreState,
     pub active: Active,
@@ -288,7 +284,10 @@ impl State {
                 });
             }
             fetch::Response::Track(stream) => {
-                self.try_do(|this| Ok(this.core.next.set(Audio::new(Stream::new(stream?)?))));
+                self.try_do(|this| {
+                    let _: () = this.core.next.set(Audio::new(Stream::new(stream?)?));
+                    Ok(())
+                });
             }
         }
     }
@@ -324,7 +323,7 @@ impl State {
     const VOL_STEP: f32 = 0.05;
 
     fn update_volume(&mut self, by: f32) {
-        let new = (self.core.player.volume() + by).min(1.).max(0.);
+        let new = (self.core.player.volume() + by).clamp(0., 1.);
 
         self.core.player.set_volume(new)
     }

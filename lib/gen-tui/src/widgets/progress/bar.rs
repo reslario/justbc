@@ -42,7 +42,7 @@ impl<'a, S: AsRef<[char]>> ProgressBar<'a, S> {
 
         /// Sets the progress of this bar (0 - 1).
         /// Will be clamped automatically.
-        pub progress: f32 => progress.min(1.).max(0.);
+        pub progress: f32 => progress.clamp(0., 1.);
 
         pub block: Block<'a> => block.into();
         pub style: Style

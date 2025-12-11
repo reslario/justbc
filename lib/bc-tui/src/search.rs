@@ -67,7 +67,7 @@ impl<'a> StatefulWidget for ResultList<'a> {
     }
 }
 
-fn list_item(result: &SearchResult) -> ListItem {
+fn list_item(result: &SearchResult) -> ListItem<'_> {
     ListItem::new(format!("{} {}", icon(result), text(result)))
 }
 
@@ -83,7 +83,7 @@ fn icon(result: &SearchResult) -> char {
     }
 }
 
-fn text(result: &SearchResult) -> Cow<str> {
+fn text(result: &SearchResult) -> Cow<'_, str> {
     use SearchResult as R;
 
     match result {

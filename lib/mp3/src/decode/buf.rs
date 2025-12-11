@@ -12,7 +12,7 @@ pub struct Buf {
 impl Buf {
     pub fn new() -> Buf {
         Buf {
-            bytes: uninit_buf(SIZE),
+            bytes: vec![0; SIZE],
             len: 0,
         }
     }
@@ -48,10 +48,4 @@ impl Buf {
     pub fn len(&self) -> usize {
         self.len
     }
-}
-
-fn uninit_buf(len: usize) -> Vec<u8> {
-    let mut buf = Vec::with_capacity(len);
-    unsafe { buf.set_len(len) }
-    buf
 }

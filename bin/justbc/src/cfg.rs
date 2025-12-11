@@ -77,6 +77,7 @@ pub struct Graphics {
     pub accent: Color,
 }
 
+#[allow(unused)]
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Color", rename_all = "kebab-case")]
 enum ColorDef {
