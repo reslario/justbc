@@ -1,10 +1,10 @@
 use {
-    std::time::Duration,
-    rodio::{Sink, Source, Sample},
     crate::{
-        tick::{Ticks, Ticking},
         recover::{Recoverable, Retriever},
-    }
+        tick::{Ticking, Ticks},
+    },
+    rodio::{Sample, Sink, Source},
+    std::time::Duration,
 };
 
 /// Resuming playback failed.
@@ -15,13 +15,13 @@ pub struct CannotResume;
 pub struct Track<S> {
     sink: Sink,
     retriever: Retriever<Ticking<S>>,
-    ticks: Ticks
+    ticks: Ticks,
 }
 
-impl <S> Track<S>
-where 
+impl<S> Track<S>
+where
     S: Source + Iterator + Send + 'static,
-    S::Item: Sample + Send
+    S::Item: Sample + Send,
 {
     pub const TICK_INTERVAL: Duration = Duration::from_millis(100);
 
@@ -38,7 +38,7 @@ where
         Track {
             sink,
             retriever,
-            ticks
+            ticks,
         }
     }
 
@@ -59,7 +59,7 @@ where
 
     /// Returns how long this track has been playing.
     pub fn elapsed(&self) -> Duration {
-       Self::TICK_INTERVAL * self.ticks.get()
+        Self::TICK_INTERVAL * self.ticks.get()
     }
 
     /// Attempts to resume playback on a different `Sink`.
@@ -92,8 +92,7 @@ where
 
     /// Sets the elapsed time directly.
     pub fn set_elapsed(&mut self, elapsed: Duration) {
-        let ticks = elapsed.as_millis() 
-            / Self::TICK_INTERVAL.as_millis();
+        let ticks = elapsed.as_millis() / Self::TICK_INTERVAL.as_millis();
 
         self.ticks.set(ticks as _)
     }

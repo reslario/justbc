@@ -1,10 +1,10 @@
 use {
-    std::io::{self, Read, Seek},
     reqwest::{
-        Url,
+        blocking::{Client, Response},
         header::{self, HeaderMap},
-        blocking::{Client, Response}
-    }
+        Url,
+    },
+    std::io::{self, Read, Seek},
 };
 
 /// Allows reading from a Bandcamp track stream and seeking within it.
@@ -14,24 +14,21 @@ pub struct TrackStream {
     pos: u64,
     length: Option<u64>,
     seek: Option<u64>,
-    response: Response
+    response: Response,
 }
 
 impl TrackStream {
     /// Creates a new `TrackStream` by fetching a response from the provided URL
     /// using the provided client.
     pub fn new(url: Url, client: Client) -> reqwest::Result<TrackStream> {
-        client
-            .get(url.clone())
-            .send()
-            .map(|response| TrackStream {
-                url,
-                client,
-                pos: 0,
-                length: content_length(response.headers()),
-                seek: None,
-                response
-            })
+        client.get(url.clone()).send().map(|response| TrackStream {
+            url,
+            client,
+            pos: 0,
+            length: content_length(response.headers()),
+            seek: None,
+            response,
+        })
     }
 
     fn maybe_seek(&mut self) -> io::Result<()> {
@@ -68,7 +65,8 @@ impl Read for TrackStream {
 
 const LEN_UNKNOWN: &str = "cannot seek from end as stream length is unknown";
 
-/// Seeking performs no I/O, only subsequent calls to [read](std::io::Read::read) will.
+/// Seeking performs no I/O, only subsequent calls to
+/// [read](std::io::Read::read) will.
 impl Seek for TrackStream {
     fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
         let pos = match pos {
@@ -77,19 +75,12 @@ impl Seek for TrackStream {
             io::SeekFrom::End(offs) => self
                 .length
                 .map(|len| offset(len, offs))
-                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, LEN_UNKNOWN))?
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, LEN_UNKNOWN))?,
         };
 
-        let pos = self
-            .seek
-            .unwrap_or_default()
-            + pos;
+        let pos = self.seek.unwrap_or_default() + pos;
 
-        self.seek = if self.pos == pos {
-            None
-        } else {
-            Some(pos)
-        };
+        self.seek = if self.pos == pos { None } else { Some(pos) };
 
         Ok(pos)
     }

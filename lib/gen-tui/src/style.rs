@@ -28,10 +28,10 @@ impl ColorExt for Color {
             LightCyan => true,
             White => true,
             Rgb(r, g, b) => is_bright(r, g, b),
-            Indexed(_) => unimplemented!()
+            Indexed(_) => unimplemented!(),
         }
     }
-    
+
     fn invert(self) -> Self {
         use Color::*;
 
@@ -54,16 +54,13 @@ impl ColorExt for Color {
             LightCyan => LightRed,
             White => Black,
             Rgb(r, g, b) => Rgb(!r, !g, !b),
-            Indexed(_) => unimplemented!()
+            Indexed(_) => unimplemented!(),
         }
     }
 }
 
 fn is_bright(r: u8, g: u8, b: u8) -> bool {
-    0.2126 * f32::from(r) 
-        + 0.7152 * f32::from(g)
-        + 0.0722 * f32::from(b)
-        >= 128.
+    0.2126 * f32::from(r) + 0.7152 * f32::from(g) + 0.0722 * f32::from(b) >= 128.
 }
 
 pub trait StyleExt: Sized + Copy {

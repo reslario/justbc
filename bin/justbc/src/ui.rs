@@ -1,33 +1,29 @@
 use {
-    std::error::Error,
-    bandcamp_api::data::releases::{Release, Track, Stream},
     crate::{
         cfg,
-        state::{State, Core, WidgetState, Active, ExploreState}
+        state::{Active, Core, ExploreState, State, WidgetState},
     },
+    bandcamp_api::data::releases::{Release, Stream, Track},
+    bc_tui::{nav::NavView, releases::ReleaseView, tracks::PlayBar},
     gen_tui::{
-        layout::{RectExt, Margin},
-        widgets::{WidgetExt, StatefulWidgetExt}
+        layout::{Margin, RectExt},
+        widgets::{StatefulWidgetExt, WidgetExt},
     },
+    std::error::Error,
     tui::{
-        Frame,
-        style::Style,
         backend::Backend,
-        layout::{Rect, Alignment},
-        widgets::{Borders, Paragraph, Wrap, BorderType}
+        layout::{Alignment, Rect},
+        style::Style,
+        widgets::{BorderType, Borders, Paragraph, Wrap},
+        Frame,
     },
-    bc_tui::{
-        nav::NavView,
-        tracks::PlayBar,
-        releases::ReleaseView
-    }
 };
 
 #[derive(Copy, Clone)]
 struct Layout {
     bottom: Rect,
     left: Rect,
-    right: Rect
+    right: Rect,
 }
 
 impl From<Rect> for Layout {
@@ -38,7 +34,7 @@ impl From<Rect> for Layout {
         Layout {
             bottom,
             left,
-            right
+            right,
         }
     }
 }
@@ -49,7 +45,14 @@ pub fn draw(frame: &mut Frame<impl Backend>, state: &mut State, cfg: &cfg::Graph
     let accent = Style::default().fg(cfg.accent);
 
     if let Some(release) = state.core.release.as_ref() {
-        draw_playing(release, &state.core, &mut state.widgets, layout, accent, frame)
+        draw_playing(
+            release,
+            &state.core,
+            &mut state.widgets,
+            layout,
+            accent,
+            frame,
+        )
     } else {
         draw_placeholders(state, layout, frame)
     }
@@ -67,7 +70,7 @@ fn draw_playing(
     widgets: &mut WidgetState,
     layout: Layout,
     accent: Style,
-    frame: &mut Frame<impl Backend>
+    frame: &mut Frame<impl Backend>,
 ) {
     ReleaseView::new(release)
         .playing_style(accent)
@@ -93,7 +96,11 @@ fn draw_placeholders(state: &mut State, layout: Layout, frame: &mut Frame<impl B
     Paragraph::new("No release")
         .alignment(Alignment::Center)
         .with_container()
-        .margin(Margin { right: 1, top: layout.left.height / 2 - 1, ..<_>::default() })
+        .margin(Margin {
+            right: 1,
+            top: layout.left.height / 2 - 1,
+            ..<_>::default()
+        })
         .borders(Borders::RIGHT)
         .render_to(frame, layout.left);
 
@@ -114,8 +121,8 @@ fn draw_nav(state: &mut State, layout: Layout, accent: Style, frame: &mut Frame<
             ExploreState::Outlet(o) => nav.outlet(o),
             ExploreState::Release(r) => nav.release(r),
             ExploreState::Search(s) => nav.search(s),
-            ExploreState::Fan(f) => nav.fan(f)
-        }
+            ExploreState::Fan(f) => nav.fan(f),
+        },
     };
 
     nav.highlight_style(accent)
@@ -141,9 +148,11 @@ fn draw_error(error: &dyn Error, frame: &mut Frame<impl Backend>, area: Rect) {
 }
 
 fn dummy_track() -> Track {
-    Track { 
+    Track {
         title: String::new(),
-        stream: Stream { mp3_128: "r://".parse().unwrap() },
-        duration: <_>::default() 
+        stream: Stream {
+            mp3_128: "r://".parse().unwrap(),
+        },
+        duration: <_>::default(),
     }
 }

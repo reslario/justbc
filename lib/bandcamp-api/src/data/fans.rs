@@ -1,14 +1,14 @@
 use {
-    serde::Deserialize,
     crate::{
-        url::ApiUrl,
         data::{
-            Query,
             common::Id,
             outlets,
-            releases::{self, ReleaseKind}
-        }
-    }
+            releases::{self, ReleaseKind},
+            Query,
+        },
+        url::ApiUrl,
+    },
+    serde::Deserialize,
 };
 
 #[derive(Debug)]
@@ -18,14 +18,14 @@ pub struct Fan {
     pub id: Id<Fan>,
     pub location: String,
     pub bio: String,
-    pub collection: Vec<Collected>
+    pub collection: Vec<Collected>,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct FanArgs {
     pub id: Id<Fan>,
     pub start: u16,
-    pub count: u16
+    pub count: u16,
 }
 
 impl FanArgs {
@@ -55,5 +55,5 @@ pub struct Collected {
     #[cfg_attr(feature = "query", serde(rename = "band_name"))]
     pub artist: String,
     #[cfg_attr(feature = "query", serde(rename = "band_id"))]
-    pub artist_id: Id<outlets::Outlet>
+    pub artist_id: Id<outlets::Outlet>,
 }

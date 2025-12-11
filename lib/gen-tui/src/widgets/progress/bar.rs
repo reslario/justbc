@@ -1,11 +1,11 @@
 use {
     builder::builder_methods,
     tui::{
-        style::Style,
-        layout::Rect,
         buffer::Buffer,
-        widgets::{Block, Widget}
-    }
+        layout::Rect,
+        style::Style,
+        widgets::{Block, Widget},
+    },
 };
 
 /// A customisable progress bar.
@@ -14,21 +14,21 @@ pub struct ProgressBar<'a, S> {
     symbols: S,
     progress: f32,
     block: Option<Block<'a>>,
-    style: Style
+    style: Style,
 }
 
-impl <'a, S: AsRef<[char]>> ProgressBar<'a, S> {
+impl<'a, S: AsRef<[char]>> ProgressBar<'a, S> {
     pub fn labeled<T>() -> super::Labeled<'a, T, S>
     where
         T: Default,
-        S: Default
+        S: Default,
     {
         <_>::default()
     }
 
     builder_methods! {
         /// Sets the symbols this `ProgressBar` uses.
-        /// 
+        ///
         /// `ProgressBar`s support drawing different symbols to fill
         /// a cell depending on completion, which can make it look smoother.
         /// The symbols should be in ascending "fullness". So if you wanted
@@ -49,7 +49,7 @@ impl <'a, S: AsRef<[char]>> ProgressBar<'a, S> {
     }
 }
 
-impl <'a, S: AsRef<[char]>> Widget for ProgressBar<'a, S> {
+impl<'a, S: AsRef<[char]>> Widget for ProgressBar<'a, S> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         use std::iter;
 
@@ -59,8 +59,7 @@ impl <'a, S: AsRef<[char]>> Widget for ProgressBar<'a, S> {
 
         buf.set_style(Rect { height: 1, ..area }, self.style);
 
-        let len = f32::from(area.width)
-            * self.progress;
+        let len = f32::from(area.width) * self.progress;
 
         let (full, partial) = symbols(self.symbols, len);
 
@@ -78,22 +77,11 @@ fn symbols(all: impl AsRef<[char]>, len: f32) -> (char, char) {
 
     let symbols = all.as_ref();
 
-    let full = symbols
-        .last()
-        .copied()
-        .unwrap_or('-');
-    
-    let index = len
-        .fract()
-        .mul(symbols.len() as f32)
-        .round()
-        as usize;
+    let full = symbols.last().copied().unwrap_or('-');
 
-    let partial = if index == 0 {
-        ' '
-    } else {
-        symbols[index - 1]
-    };
+    let index = len.fract().mul(symbols.len() as f32).round() as usize;
+
+    let partial = if index == 0 { ' ' } else { symbols[index - 1] };
 
     (full, partial)
 }

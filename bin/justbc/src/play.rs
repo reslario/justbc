@@ -1,12 +1,9 @@
-use {
-    std::time::Duration,
-    bandcamp_api::data::releases::Track
-};
+use {bandcamp_api::data::releases::Track, std::time::Duration};
 
 #[derive(Default, Debug)]
 pub struct Queue {
     tracks: Vec<Track>,
-    current: usize
+    current: usize,
 }
 
 impl Queue {
@@ -37,17 +34,17 @@ impl Queue {
     }
 
     pub fn prepare_next(&self, elapsed: Duration) -> Option<&Track> {
-        if self.current()?
+        if self
+            .current()?
             .duration
             .checked_sub(elapsed)
             .unwrap_or_default()
             <= Duration::from_secs(5)
         {
-            self.next()   
-        } else {  
-            None 
+            self.next()
+        } else {
+            None
         }
-            
     }
 
     pub fn advance(&mut self) {

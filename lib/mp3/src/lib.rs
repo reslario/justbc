@@ -1,6 +1,6 @@
 mod cache;
-mod samples;
 mod decode;
+mod samples;
 mod span;
 
 use {
@@ -9,10 +9,10 @@ use {
     samples::*,
     span::FrameSpan,
     std::{
+        io::{self, Read, Seek},
         mem,
         time::Duration,
-        io::{self, Read, Seek}
-    }
+    },
 };
 
 const MICROS_PER_SEC: u32 = Duration::from_secs(1).as_micros() as _;
@@ -21,15 +21,14 @@ pub struct Frame {
     pub samples: Samples,
     pub channels: u16,
     pub sample_rate: u32,
-    pub pos: u64
+    pub pos: u64,
 }
 
 impl Frame {
     fn micros(&self) -> u32 {
         let samples = self.samples.len() / self.channels;
 
-        let secs = samples as f64
-            / self.sample_rate as f64;
+        let secs = samples as f64 / self.sample_rate as f64;
 
         let micros = secs * MICROS_PER_SEC as f64;
 
@@ -41,8 +40,7 @@ impl Frame {
     }
 
     fn samples_in(&self, duration: Duration) -> u16 {
-        let samples = duration.as_secs_f64()
-            / self.sample_rate as f64;
+        let samples = duration.as_secs_f64() / self.sample_rate as f64;
         samples.round() as _
     }
 }
@@ -50,7 +48,7 @@ impl Frame {
 struct Current {
     frame: Frame,
     frame_index: usize,
-    span: FrameSpan
+    span: FrameSpan,
 }
 
 impl Default for Current {
@@ -58,7 +56,7 @@ impl Default for Current {
         Current {
             frame: empty_frame(),
             frame_index: 0,
-            span: FrameSpan::empty()
+            span: FrameSpan::empty(),
         }
     }
 }
@@ -68,7 +66,7 @@ fn empty_frame() -> Frame {
         samples: <_>::default(),
         sample_rate: 44100,
         channels: 2,
-        pos: 0
+        pos: 0,
     }
 }
 
@@ -77,15 +75,15 @@ fn empty_frame() -> Frame {
 pub struct Mp3<R: Read> {
     decoder: Decoder<R>,
     cache: FrameCache,
-    current: Current
+    current: Current,
 }
 
-impl <R: Read> Mp3<R> {
+impl<R: Read> Mp3<R> {
     pub fn new(reader: R) -> Mp3<R> {
         Mp3 {
             decoder: Decoder::new(reader),
             cache: <_>::default(),
-            current: <_>::default()
+            current: <_>::default(),
         }
     }
 
@@ -95,14 +93,11 @@ impl <R: Read> Mp3<R> {
             self.decoder.next_frame(samples.into_buf())?
         };
 
-        self.current.span = FrameSpan::new(
-            self.current.span.end(),
-            self.current.frame.micros()
-        );
+        self.current.span = FrameSpan::new(self.current.span.end(), self.current.frame.micros());
 
         let cached = CachedFrame {
             span: self.current.span,
-            pos: self.current.frame.pos
+            pos: self.current.frame.pos,
         };
 
         self.cache.set(self.current.frame_index, cached);
@@ -112,20 +107,18 @@ impl <R: Read> Mp3<R> {
     }
 }
 
-impl <R: Read> Iterator for Mp3<R> {
+impl<R: Read> Iterator for Mp3<R> {
     type Item = i16;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.current.frame.samples
-            .next()
-            .or_else(|| {
-                self.next_frame().ok()?;
-                self.current.frame.samples.next()
-            })
+        self.current.frame.samples.next().or_else(|| {
+            self.next_frame().ok()?;
+            self.current.frame.samples.next()
+        })
     }
 }
 
-impl <R: Read> rodio::Source for Mp3<R> {
+impl<R: Read> rodio::Source for Mp3<R> {
     fn current_frame_len(&self) -> Option<usize> {
         Some(self.current.frame.samples.len() as _)
     }
@@ -143,12 +136,14 @@ impl <R: Read> rodio::Source for Mp3<R> {
     }
 }
 
-impl <R: Read + Seek> seek::SeekableSource for Mp3<R> {
+impl<R: Read + Seek> seek::SeekableSource for Mp3<R> {
     type Error = io::Error;
 
     fn seek(&mut self, duration: Duration) -> Result<Duration, Self::Error> {
         if self.current.span.contains(duration) {
-            self.current.frame.start_at(duration - self.current.span.start_duration());
+            self.current
+                .frame
+                .start_at(duration - self.current.span.start_duration());
             Ok(duration)
         } else if self.current.span.start_duration() > duration {
             self.find_left(duration)
@@ -158,9 +153,10 @@ impl <R: Read + Seek> seek::SeekableSource for Mp3<R> {
     }
 }
 
-impl <R: Read + Seek> Mp3<R> {
+impl<R: Read + Seek> Mp3<R> {
     fn find_left(&mut self, duration: Duration) -> Result<Duration, io::Error> {
-        let (index, frame) = self.cache
+        let (index, frame) = self
+            .cache
             .enumerated(..self.current.frame_index)
             .rfind(|(_, frame)| frame.span.start_duration() <= duration)
             .unwrap_or_default();
@@ -175,7 +171,9 @@ impl <R: Read + Seek> Mp3<R> {
             self.current.span.end_duration() < duration
         } {}
 
-        self.current.frame.start_at(duration - self.current.span.start_duration());
+        self.current
+            .frame
+            .start_at(duration - self.current.span.start_duration());
 
         Ok(duration)
     }
@@ -201,12 +199,14 @@ impl <R: Read + Seek> Mp3<R> {
         self.current.frame_index = index;
 
         self.decoder.seek(io::SeekFrom::Start(pos))?;
-        
+
         while self.current.span.end_duration() < duration {
             self.next_frame()?
         }
 
-        self.current.frame.start_at(duration - self.current.span.start_duration());
+        self.current
+            .frame
+            .start_at(duration - self.current.span.start_duration());
 
         Ok(duration)
     }

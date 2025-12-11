@@ -1,25 +1,20 @@
 use {
-    serde::Deserialize,
+    super::{super::parse, Date, Month},
     practicaltimestamp::UnixTimestamp,
-    snafu::{Snafu, OptionExt, ResultExt},
-    std::{
-        str::FromStr,
-        num::NonZeroU8
-    },
-    super::{
-        Date,
-        Month,
-        super::parse
-    },
+    serde::Deserialize,
+    snafu::{OptionExt, ResultExt, Snafu},
+    std::{num::NonZeroU8, str::FromStr},
 };
 
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub))]
 pub enum DateParseError {
     #[snafu(display("parse error: {}", source))]
-    Parse { source: parse::ParseError<std::num::ParseIntError> },
+    Parse {
+        source: parse::ParseError<std::num::ParseIntError>,
+    },
     #[snafu(display("invalid month"))]
-    InvalidMonth
+    InvalidMonth,
 }
 
 impl FromStr for Date {
@@ -31,28 +26,38 @@ impl FromStr for Date {
         Ok(Date {
             day: next_parsed(&mut fields, "day")?,
             month: next(&mut fields, "month")?.parse()?,
-            year: next_parsed(&mut fields, "year")?
+            year: next_parsed(&mut fields, "year")?,
         })
     }
 }
 
-fn next<'a>(mut iter: impl Iterator<Item = &'a str>, field: &'static str) -> Result<&'a str, DateParseError> {
+fn next<'a>(
+    mut iter: impl Iterator<Item = &'a str>,
+    field: &'static str,
+) -> Result<&'a str, DateParseError> {
     iter.next()
         .context(parse::MissingField { field })
         .context(Parse)
 }
 
-fn next_parsed<'a, T>(iter: impl Iterator<Item = &'a str>, field: &'static str) -> Result<T, DateParseError>
-where T: std::str::FromStr<Err = std::num::ParseIntError> {
+fn next_parsed<'a, T>(
+    iter: impl Iterator<Item = &'a str>,
+    field: &'static str,
+) -> Result<T, DateParseError>
+where
+    T: std::str::FromStr<Err = std::num::ParseIntError>,
+{
     next(iter, field)?
         .parse()
         .context(parse::Parse { field })
         .context(Parse)
 }
 
-impl <'de> Deserialize<'de> for Date {
+impl<'de> Deserialize<'de> for Date {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: serde::Deserializer<'de> {
+    where
+        D: serde::Deserializer<'de>,
+    {
         <&str>::deserialize(deserializer)?
             .parse()
             .map_err(serde::de::Error::custom)
@@ -92,13 +97,14 @@ impl Date {
         Date {
             year,
             month: Month::from_n(month),
-            day: NonZeroU8::new(day).unwrap()
+            day: NonZeroU8::new(day).unwrap(),
         }
     }
 
     pub fn deserialize_unix_timestamp<'de, D>(deserializer: D) -> Result<Self, D::Error>
-    where D: serde::Deserializer<'de> {
-        <_>::deserialize(deserializer)
-            .map(Date::from_unix_timestamp)
+    where
+        D: serde::Deserializer<'de>,
+    {
+        <_>::deserialize(deserializer).map(Date::from_unix_timestamp)
     }
 }

@@ -1,22 +1,18 @@
-mod state;
-mod play;
-mod ui;
 mod cfg;
+mod play;
+mod state;
 mod term;
+mod ui;
 
 use {
-    event::*,
-    cfg::Config,
-    state::State,
-    term::Terminal,
-    fetch::Fetcher,
     bandcamp_api::Api,
+    cfg::Config,
     directories::ProjectDirs,
-    std::{
-        thread,
-        error::Error,
-        time::Duration
-    }
+    event::*,
+    fetch::Fetcher,
+    state::State,
+    std::{error::Error, thread, time::Duration},
+    term::Terminal,
 };
 
 type Result<T = ()> = std::result::Result<T, Box<dyn Error>>;
@@ -56,7 +52,7 @@ fn main_loop(
     events: Events,
     state: &mut State,
     terminal: &mut Terminal,
-    gfx: &cfg::Graphics
+    gfx: &cfg::Graphics,
 ) -> Result {
     let refresh = Duration::from_millis(gfx.refresh);
 
@@ -67,7 +63,7 @@ fn main_loop(
                 Event::Response(resp) => state.set_response(resp),
                 Event::MediaKey(key) => state.handle_media_key(key),
                 Event::DeviceUpdated => state.update_device(),
-                Event::Terminate => break 'main Ok(())
+                Event::Terminate => break 'main Ok(()),
             }
         }
 

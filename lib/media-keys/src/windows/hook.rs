@@ -1,27 +1,24 @@
 use {
-    super::{Result, ErrorKind, Error},
-    windows_dll::dll,
+    super::{Error, ErrorKind, Result},
     kernel32::GetModuleHandleA,
-    std::{
-        io,
-        ptr,
-    },
+    std::{io, ptr},
     winapi::{
         shared::{
+            minwindef::{BOOL, FALSE, HINSTANCE},
             windef::HWND,
-            minwindef::{BOOL, FALSE, HINSTANCE}
         },
         um::winuser::{
-            WNDCLASSA,
-            CW_USEDEFAULT,
+            CreateWindowExA,
             DefWindowProcA,
             DestroyWindow,
             RegisterClassA,
-            CreateWindowExA,
             UnregisterClassA,
-            WS_EX_NOACTIVATE
-        }
-    }
+            CW_USEDEFAULT,
+            WNDCLASSA,
+            WS_EX_NOACTIVATE,
+        },
+    },
+    windows_dll::dll,
 };
 
 #[allow(non_snake_case)]
@@ -42,31 +39,20 @@ impl Instance {
             let instance = ensure_ne(
                 GetModuleHandleA(ptr::null()).cast(),
                 ptr::null_mut(),
-                ErrorKind::GetModuleHandle
+                ErrorKind::GetModuleHandle,
             )?;
-            
+
             ensure_ne(
                 RegisterClassA(&window_class(instance)),
                 0,
-                ErrorKind::RegisterClass
+                ErrorKind::RegisterClass,
             )?;
-    
-            let window = ensure_ne(
-                window(instance),
-                ptr::null_mut(),
-                ErrorKind::CreateWindow
-            )?;
-    
-            ensure_ne(
-                set_shell_hook(window),
-                FALSE,
-                ErrorKind::SetHook
-            )?;
-    
-            Ok(Instance {
-                instance,
-                window
-            })
+
+            let window = ensure_ne(window(instance), ptr::null_mut(), ErrorKind::CreateWindow)?;
+
+            ensure_ne(set_shell_hook(window), FALSE, ErrorKind::SetHook)?;
+
+            Ok(Instance { instance, window })
         }
     }
 }
@@ -109,13 +95,13 @@ fn window(instance: HINSTANCE) -> HWND {
             ptr::null(),
             WS_EX_NOACTIVATE,
             CW_USEDEFAULT,
-            CW_USEDEFAULT, 
+            CW_USEDEFAULT,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
             ptr::null_mut(),
             ptr::null_mut(),
             instance,
-            ptr::null_mut()
+            ptr::null_mut(),
         )
     }
 }
@@ -126,7 +112,7 @@ fn ensure_ne<T: PartialEq>(val: T, not: T, error_kind: ErrorKind) -> Result<T> {
     } else {
         Err(Error {
             kind: error_kind,
-            io_err: io::Error::last_os_error()
+            io_err: io::Error::last_os_error(),
         })
     }
 }

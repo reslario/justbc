@@ -6,14 +6,14 @@ const SIZE: usize = 3000;
 
 pub struct Buf {
     bytes: Vec<u8>,
-    len: usize
+    len: usize,
 }
 
 impl Buf {
     pub fn new() -> Buf {
         Buf {
             bytes: uninit_buf(SIZE),
-            len: 0
+            len: 0,
         }
     }
 
@@ -23,7 +23,7 @@ impl Buf {
         while read < SIZE {
             read += match reader.read(&mut self.bytes[read..])? {
                 0 => break,
-                n => n
+                n => n,
             }
         }
 

@@ -18,7 +18,10 @@ type Source = none::None;
 
 pub struct Watcher(Source);
 
-impl Watcher where Source: EventSource {
+impl Watcher
+where
+    Source: EventSource,
+{
     pub fn new() -> io::Result<Watcher> {
         <_>::new().map(Watcher)
     }

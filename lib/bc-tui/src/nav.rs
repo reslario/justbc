@@ -1,38 +1,28 @@
 use {
+    super::{fans::*, outlets::*, releases::*, search::*},
+    bandcamp_api::data::{fans::Fan, outlets::*, releases::Release, search::Search},
     builder::builder_methods,
-    super::{
-        fans::*,
-        search::*,
-        outlets::*,
-        releases::*
-    },
     gen_tui::{
-        style::StyleExt,
         layout::RectExt,
-        widgets::{StatefulWidgetExt, Spinner, SpinnerState, TextInput, TextInputState},
-    },
-    bandcamp_api::data::{
-        fans::Fan,
-        outlets::*,
-        search::Search,
-        releases::Release
+        style::StyleExt,
+        widgets::{Spinner, SpinnerState, StatefulWidgetExt, TextInput, TextInputState},
     },
     tui::{
-        text::Span,
-        style::Style,
-        layout::Rect,
         buffer::Buffer,
-        widgets::{StatefulWidget, Tabs, ListState}
-    }
+        layout::Rect,
+        style::Style,
+        text::Span,
+        widgets::{ListState, StatefulWidget, Tabs},
+    },
 };
 
 #[derive(Copy, Clone)]
 enum Show<'a> {
     Library,
-    Explore(Explore<'a>)
+    Explore(Explore<'a>),
 }
 
-impl <'a> Default for Show<'a> {
+impl<'a> Default for Show<'a> {
     fn default() -> Self {
         Show::Library
     }
@@ -45,43 +35,64 @@ enum Explore<'a> {
     Fan(&'a Fan),
     Search(&'a Search),
     Outlet(&'a Outlet),
-    Release(&'a Release)
+    Release(&'a Release),
 }
 
 #[derive(Default)]
 pub struct NavView<'a> {
     show: Show<'a>,
     style: Style,
-    highlight_style: Style
+    highlight_style: Style,
 }
 
-impl <'a> NavView<'a> {
+impl<'a> NavView<'a> {
     pub fn library(self) -> Self {
-        Self { show: Show::Library, ..self }
+        Self {
+            show: Show::Library,
+            ..self
+        }
     }
 
     pub fn blank(self) -> Self {
-        Self { show: Show::Explore(Explore::Blank), ..self }
+        Self {
+            show: Show::Explore(Explore::Blank),
+            ..self
+        }
     }
 
     pub fn loading(self) -> Self {
-        Self { show: Show::Explore(Explore::Loading), ..self }
+        Self {
+            show: Show::Explore(Explore::Loading),
+            ..self
+        }
     }
 
     pub fn fan(self, fan: &'a Fan) -> Self {
-        Self { show: Show::Explore(Explore::Fan(fan)), ..self }
+        Self {
+            show: Show::Explore(Explore::Fan(fan)),
+            ..self
+        }
     }
 
     pub fn search(self, search: &'a Search) -> Self {
-        Self { show: Show::Explore(Explore::Search(search)), ..self }
+        Self {
+            show: Show::Explore(Explore::Search(search)),
+            ..self
+        }
     }
 
     pub fn outlet(self, outlet: &'a Outlet) -> Self {
-        Self { show: Show::Explore(Explore::Outlet(outlet)), ..self }
+        Self {
+            show: Show::Explore(Explore::Outlet(outlet)),
+            ..self
+        }
     }
 
     pub fn release(self, release: &'a Release) -> Self {
-        Self { show: Show::Explore(Explore::Release(release)), ..self }
+        Self {
+            show: Show::Explore(Explore::Release(release)),
+            ..self
+        }
     }
 
     builder_methods! {
@@ -94,12 +105,7 @@ impl <'a> NavView<'a> {
     fn draw_tabs(&self, area: Rect, buf: &mut Buffer) -> Rect {
         use tui::widgets::Widget;
 
-        let width = Self::TABS
-            .iter()
-            .copied()
-            .map(str::len)
-            .sum::<usize>()
-            + 3;
+        let width = Self::TABS.iter().copied().map(str::len).sum::<usize>() + 3;
 
         let center_offset = (width / 2 + 1) as u16;
 
@@ -118,7 +124,7 @@ impl <'a> NavView<'a> {
 
         let selected = match self.show {
             Show::Library => 0,
-            Show::Explore(_) => 1
+            Show::Explore(_) => 1,
         };
 
         Tabs::new(titles)
@@ -144,7 +150,7 @@ impl <'a> NavView<'a> {
         macro_rules! draw {
             ($val:expr, $wf:expr, $sf:expr) => {
                 self.draw(area, buf, state, $val, $wf, $sf)
-            }
+            };
         }
 
         match self.show {
@@ -155,8 +161,10 @@ impl <'a> NavView<'a> {
                 Explore::Fan(fan) => draw!(fan, Self::draw_fan, NavViewState::fan),
                 Explore::Search(search) => draw!(search, Self::draw_search, NavViewState::results),
                 Explore::Outlet(outlet) => draw!(outlet, Self::draw_outlet, NavViewState::outlet),
-                Explore::Release(release) => draw!(release, Self::draw_release, NavViewState::release)
-            }
+                Explore::Release(release) => {
+                    draw!(release, Self::draw_release, NavViewState::release)
+                }
+            },
         }
     }
 
@@ -167,12 +175,11 @@ impl <'a> NavView<'a> {
         state: &mut NavViewState,
         val: &'v T,
         mut wf: WF,
-        mut sf: SF
-    )
-    where
+        mut sf: SF,
+    ) where
         W: StatefulWidget + StatefulWidgetExt + 'v,
         WF: FnMut(&Self, &'v T) -> W,
-        SF: for<'s> FnMut(&'s mut NavViewState) -> &'s mut W::State
+        SF: for<'s> FnMut(&'s mut NavViewState) -> &'s mut W::State,
     {
         wf(self, val)
             .scrollable()
@@ -181,8 +188,7 @@ impl <'a> NavView<'a> {
     }
 
     fn draw_loading(&self, area: Rect, buf: &mut Buffer, state: &mut SpinnerState) {
-        Spinner::default()
-            .render(area.centered(4, 2), buf, state)
+        Spinner::default().render(area.centered(4, 2), buf, state)
     }
 
     fn draw_fan<'f>(&self, fan: &'f Fan) -> FanView<'f> {
@@ -204,8 +210,7 @@ impl <'a> NavView<'a> {
     }
 
     fn draw_release<'r>(&self, release: &'r Release) -> ReleaseView<'r> {
-        ReleaseView::new(release)
-            .style(self.style)
+        ReleaseView::new(release).style(self.style)
     }
 }
 
@@ -215,7 +220,7 @@ enum BodyState {
     Results(ResultListState),
     Release(ReleaseViewState),
     Outlet(OutletViewState),
-    Spinner(SpinnerState)
+    Spinner(SpinnerState),
 }
 
 impl Default for BodyState {
@@ -228,11 +233,11 @@ impl Default for BodyState {
 pub struct NavViewState {
     pub input: TextInputState,
     body: BodyState,
-    scroll: u16
+    scroll: u16,
 }
 
 macro_rules! get_body {
-    ($var:ident . $field:ident, $variant:ident) => {
+    ($var:ident. $field:ident, $variant:ident) => {
         match &mut $var.$field {
             BodyState::$variant(state) => state,
             body => {
@@ -240,9 +245,9 @@ macro_rules! get_body {
                 *body = BodyState::$variant(<_>::default());
                 match body {
                     BodyState::$variant(state) => state,
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
-            } 
+            }
         }
     };
 }
@@ -250,24 +255,24 @@ macro_rules! get_body {
 impl NavViewState {
     fn list_mut(&mut self) -> Option<&mut ListState> {
         match &mut self.body {
-            BodyState::Blank
-                | BodyState::Spinner(_) => return None,
+            BodyState::Blank | BodyState::Spinner(_) => return None,
             BodyState::Outlet(o) => o,
             BodyState::Release(r) => &mut *r,
             BodyState::Results(r) => r,
-            BodyState::Fan(f) => &mut f.collection
-        }.into()
+            BodyState::Fan(f) => &mut f.collection,
+        }
+        .into()
     }
 
     fn list(&self) -> Option<&ListState> {
         match &self.body {
-            BodyState::Blank
-                | BodyState::Spinner(_) => return None,
+            BodyState::Blank | BodyState::Spinner(_) => return None,
             BodyState::Outlet(o) => o,
             BodyState::Release(r) => &r,
             BodyState::Results(r) => r,
-            BodyState::Fan(f) => &f.collection
-        }.into()
+            BodyState::Fan(f) => &f.collection,
+        }
+        .into()
     }
 
     pub fn selected(&self) -> Option<usize> {
@@ -276,15 +281,12 @@ impl NavViewState {
 
     pub fn selection_down(&mut self) {
         if let Some(list) = self.list_mut() {
-            let index = list
-                .selected()
-                .map(|idx| idx + 1)
-                .unwrap_or_default();
+            let index = list.selected().map(|idx| idx + 1).unwrap_or_default();
 
             list.select(index.into())
         }
     }
-    
+
     pub fn selection_up(&mut self) {
         if let Some(list) = self.list_mut() {
             list.select(list.selected().map(|s| s.saturating_sub(1)))
@@ -315,17 +317,17 @@ impl NavViewState {
     pub fn results(&mut self) -> &mut ResultListState {
         get_body!(self.body, Results)
     }
-    
+
     pub fn release(&mut self) -> &mut ReleaseViewState {
         get_body!(self.body, Release)
     }
-    
+
     pub fn outlet(&mut self) -> &mut OutletViewState {
         get_body!(self.body, Outlet)
     }
 }
 
-impl <'a> StatefulWidget for NavView<'a> {
+impl<'a> StatefulWidget for NavView<'a> {
     type State = NavViewState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {

@@ -1,28 +1,28 @@
-pub mod progress;
-mod scroll;
+mod clear;
+mod container;
 mod fit;
 pub mod input;
+pub mod progress;
+mod scroll;
 mod spinner;
-mod container;
-mod clear;
 
 pub use {
-    fit::*,
+    self::input::{TextInput, TextInputState},
     clear::*,
+    container::*,
+    fit::*,
+    progress::ProgressBar,
     scroll::*,
     spinner::*,
-    container::*,
-    progress::ProgressBar,
-    self::input::{TextInput, TextInputState}
 };
 
 use tui::{
-    text,
-    Frame,
-    layout::Rect,
-    buffer::Buffer,
     backend::Backend,
-    widgets::{self, Widget}
+    buffer::Buffer,
+    layout::Rect,
+    text,
+    widgets::{self, Widget},
+    Frame,
 };
 
 macro_rules! widget_ext_fns {
@@ -31,7 +31,7 @@ macro_rules! widget_ext_fns {
         fn scrollable(self) -> Scrollable<Self> {
             Scrollable::new(self)
         }
-    
+
         /// Wraps this widget in a container.
         fn with_container<'a>(self) -> Container<'a, Self> {
             Container::new(self)
@@ -51,7 +51,7 @@ pub trait WidgetExt: Sized + widgets::Widget {
     }
 }
 
-impl <W: tui::widgets::Widget> WidgetExt for W {}
+impl<W: tui::widgets::Widget> WidgetExt for W {}
 
 pub trait StatefulWidgetExt: Sized + widgets::StatefulWidget {
     widget_ext_fns!();
@@ -61,10 +61,9 @@ pub trait StatefulWidgetExt: Sized + widgets::StatefulWidget {
     }
 }
 
-impl <W: tui::widgets::StatefulWidget> StatefulWidgetExt for W {}
+impl<W: tui::widgets::StatefulWidget> StatefulWidgetExt for W {}
 
-fn rendered_block(area: Rect, buf: &mut Buffer)
--> impl FnMut(widgets::Block) -> Rect + '_ {
+fn rendered_block(area: Rect, buf: &mut Buffer) -> impl FnMut(widgets::Block) -> Rect + '_ {
     move |block| {
         let inner = block.inner(area);
         block.render(area, buf);
@@ -76,7 +75,7 @@ pub fn draw_paragraph<'t>(
     text: impl Into<text::Text<'t>>,
     mut cfg: impl FnMut(widgets::Paragraph<'t>) -> widgets::Paragraph<'t>,
     area: Rect,
-    buf: &mut Buffer
+    buf: &mut Buffer,
 ) -> u16 {
     let mut text = text.into();
 
@@ -87,11 +86,9 @@ pub fn draw_paragraph<'t>(
 
     text.extend(std::iter::once(END.into()));
 
-    cfg(widgets::Paragraph::new(text))
-        .render(area, buf);
+    cfg(widgets::Paragraph::new(text)).render(area, buf);
 
     (area.y..buf.area.bottom())
         .take_while(|y| buf.get(area.x, *y).symbol != END)
-        .count()
-        as _
+        .count() as _
 }

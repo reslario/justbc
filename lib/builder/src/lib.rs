@@ -6,28 +6,29 @@
 /// Allows defining builder methods using a semicolon-separated list.
 ///
 /// # Examples
-/// 
-///```
+///
+/// ```
 /// use builder::builder_methods;
 ///
 /// #[derive(Default)]
 /// struct S {
 ///     a: String
 /// }
-/// 
+///
 /// impl S {
 ///     builder_methods! {
 ///         a: String
 ///     }
 /// }
-/// 
+///
 /// assert_eq!(
 ///     "yes",
 ///     S::default().a("yes".into()).a
 /// )
 /// ```
 ///
-/// The macro allows for a fair bit of customisation, including transforming arguments.
+/// The macro allows for a fair bit of customisation, including transforming
+/// arguments.
 ///
 /// ```
 /// use builder::builder_methods;
@@ -38,7 +39,7 @@
 ///     a: u8,
 ///     b: Cow<'a, str>
 /// }
-/// 
+///
 /// impl <'a> S<'a> {
 ///     builder_methods! {
 ///         /// Sets a.
@@ -48,7 +49,7 @@
 ///         pub b: impl Into<Cow<'a, str>> => b.into()
 ///     }
 /// }
-/// 
+///
 /// assert!(matches!(
 ///     S::default().a(2).b("yes"),
 ///     S { a: 2, b: Cow::Borrowed("yes") }

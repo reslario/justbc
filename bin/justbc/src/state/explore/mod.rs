@@ -1,8 +1,8 @@
 mod empty;
 mod fan;
-mod search;
 mod outlet;
 mod release;
+mod search;
 
 pub use empty::*;
 

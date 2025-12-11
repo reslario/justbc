@@ -1,12 +1,6 @@
 use {
+    crate::state::{explore::ExploreState, Core, Focus, State, WidgetState},
     bandcamp_api::data::releases::Release,
-    crate::state::{
-        Core,
-        Focus,
-        State,
-        WidgetState,
-        explore::ExploreState
-    },
 };
 
 impl super::Explore for Release {

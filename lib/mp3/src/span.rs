@@ -1,7 +1,4 @@
-use std::{
-    fmt,
-    time::Duration
-};
+use std::{fmt, time::Duration};
 
 #[allow(non_camel_case_types)]
 type u24 = [u8; 3];
@@ -13,7 +10,7 @@ pub struct FrameSpan {
     start: u32,
     // mp3 frames are very short,
     // so 24 bits are enough to represent one's length
-    len: u24
+    len: u24,
 }
 
 impl FrameSpan {
@@ -22,7 +19,7 @@ impl FrameSpan {
 
         FrameSpan {
             start,
-            len: [a, b, c]
+            len: [a, b, c],
         }
     }
 
@@ -35,13 +32,12 @@ impl FrameSpan {
 
         let micros = match u32::try_from(duration.as_micros()) {
             Ok(micros) => micros,
-            Err(_) => return false
+            Err(_) => return false,
         };
 
-        micros >= self.start
-            && micros < self.start + self.len()
+        micros >= self.start && micros < self.start + self.len()
     }
-    
+
     pub fn len(&self) -> u32 {
         let [a, b, c] = self.len;
         u32::from_le_bytes([a, b, c, 0])

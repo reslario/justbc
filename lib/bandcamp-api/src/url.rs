@@ -8,39 +8,28 @@ const BASE: &str = "https://bandcamp.com/api";
 
 pub struct ApiUrl<S> {
     url: Url,
-    _state: S
+    _state: S,
 }
 
 impl ApiUrl<Base> {
     pub fn new(path: impl AsRef<str>) -> Self {
-        let mut url = BASE
-            .parse::<Url>()
-            .unwrap();
+        let mut url = BASE.parse::<Url>().unwrap();
 
-        url.path_segments_mut()
-            .unwrap()
-            .push(path.as_ref());
+        url.path_segments_mut().unwrap().push(path.as_ref());
 
-        ApiUrl { 
-            url,
-            _state: Base 
-        }
+        ApiUrl { url, _state: Base }
     }
 
     pub fn mobile() -> ApiUrl<WithVersion> {
-        ApiUrl::new("mobile")
-            .version("24")
+        ApiUrl::new("mobile").version("24")
     }
 
     pub fn version(mut self, version: impl AsRef<str>) -> ApiUrl<WithVersion> {
-        self.url
-            .path_segments_mut()
-            .unwrap()
-            .push(version.as_ref());
+        self.url.path_segments_mut().unwrap().push(version.as_ref());
 
         ApiUrl {
             url: self.url,
-            _state: WithVersion
+            _state: WithVersion,
         }
     }
 }
@@ -54,7 +43,7 @@ impl ApiUrl<WithVersion> {
 
         ApiUrl {
             url: self.url,
-            _state: WithFunction
+            _state: WithFunction,
         }
     }
 }

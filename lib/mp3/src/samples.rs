@@ -6,7 +6,7 @@ pub type Sample = i16;
 
 #[derive(Default)]
 pub struct SampleBuf {
-    samples: Vec<Sample>
+    samples: Vec<Sample>,
 }
 
 impl SampleBuf {
@@ -35,7 +35,7 @@ impl ops::DerefMut for SampleBuf {
 
 pub struct Samples {
     samples: SampleBuf,
-    current: u16
+    current: u16,
 }
 
 impl Default for Samples {
@@ -48,14 +48,14 @@ impl Samples {
     pub fn new(samples: SampleBuf) -> Samples {
         Samples {
             samples,
-            current: 0
+            current: 0,
         }
     }
 
     pub fn len(&self) -> u16 {
         self.samples.len() as _
     }
-    
+
     pub fn set_current(&mut self, pos: u16) {
         self.current = pos
     }
@@ -69,13 +69,10 @@ impl Iterator for Samples {
     type Item = Sample;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let sample = self
-            .samples
-            .get(self.current as usize)
-            .cloned();
+        let sample = self.samples.get(self.current as usize).cloned();
 
         self.current += 1;
-       
+
         sample
     }
 }

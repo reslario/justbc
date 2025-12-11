@@ -5,8 +5,8 @@ pub use keys::Key;
 
 use {
     crossterm::event,
+    serde::{Deserialize, Serialize},
     std::time::Duration,
-    serde::{Serialize, Deserialize}
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -29,7 +29,7 @@ pub enum Command {
     NextTrack,
     PrevTrack,
     SkipAhead,
-    SkipBack
+    SkipBack,
 }
 
 pub fn keys() -> impl Iterator<Item = Key> {
@@ -40,7 +40,7 @@ pub fn keys() -> impl Iterator<Item = Key> {
         .filter_map(|_| event::read().ok())
         .filter_map(|event| match event {
             event::Event::Key(event) => event.into(),
-            _ => None
+            _ => None,
         })
         .map(<_>::into)
 }

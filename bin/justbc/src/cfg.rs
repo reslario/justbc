@@ -1,17 +1,14 @@
 use {
-    tui::style::Color,
-    structopt::StructOpt,
     input::binds::Bindings,
-    structopt_toml::StructOptToml,
-    std::{
-        fs,
-        path::Path
-    },
     serde::{
-        Serialize,
+        de::{self, IntoDeserializer},
         Deserialize,
-        de::{self, IntoDeserializer}
-    }
+        Serialize,
+    },
+    std::{fs, path::Path},
+    structopt::StructOpt,
+    structopt_toml::StructOptToml,
+    tui::style::Color,
 };
 
 #[derive(StructOpt, StructOptToml, Serialize, Deserialize)]
@@ -21,24 +18,22 @@ pub struct Config {
     pub state: StateConfig,
     #[serde(default)]
     #[structopt(flatten)]
-    pub gfx: Graphics
+    pub gfx: Graphics,
 }
 
 impl Config {
     pub fn load(cfg_file: impl AsRef<Path>) -> crate::Result<Config> {
         if cfg_file.as_ref().exists() {
             let cfg = fs::read_to_string(&cfg_file)?;
-            Config::from_args_with_toml(&cfg)
-                .map_err(<_>::into)
+            Config::from_args_with_toml(&cfg).map_err(<_>::into)
         } else {
-            Config::from_args_safe()
-                .map_err(<_>::into)
+            Config::from_args_safe().map_err(<_>::into)
         }
     }
 
     pub fn save(&self, cfg_file: impl AsRef<Path>) -> crate::Result {
         use std::io::Write;
-    
+
         if let Some(dir) = cfg_file.as_ref().parent() {
             fs::create_dir_all(dir)?
         }
@@ -46,7 +41,7 @@ impl Config {
         let mut file = fs::File::create(cfg_file)?;
         let toml = toml::to_string_pretty(self)?;
         file.write_all(toml.as_ref())?;
-        
+
         Ok(())
     }
 }
@@ -57,14 +52,14 @@ pub struct StateConfig {
     #[structopt(flatten)]
     pub general: General,
     #[structopt(skip)]
-    pub bindings: Option<Bindings>
+    pub bindings: Option<Bindings>,
 }
 
 #[derive(StructOpt, StructOptToml, Serialize, Deserialize)]
 pub struct General {
     /// The initial playback volume, from 0 to 1
     #[structopt(long, default_value = "0.5")]
-    pub volume: f32
+    pub volume: f32,
 }
 
 #[derive(StructOpt, StructOptToml, Serialize, Deserialize)]
@@ -79,7 +74,7 @@ pub struct Graphics {
         default_value = "cyan",
         parse(try_from_str = parse_color)
     )]
-    pub accent: Color
+    pub accent: Color,
 }
 
 #[derive(Serialize, Deserialize)]

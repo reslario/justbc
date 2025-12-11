@@ -1,17 +1,14 @@
 use {
-    std::{fmt, ops},
+    crate::{layout::RectExt, widgets::ProgressBar},
     builder::builder_methods,
-    crate::{
-        layout::RectExt,
-        widgets::ProgressBar
-    },
+    std::{fmt, ops},
     tui::{
-        text::Span,
-        style::Style,
-        layout::Rect,
         buffer::Buffer,
-        widgets::{Block, Widget}
-    }
+        layout::Rect,
+        style::Style,
+        text::Span,
+        widgets::{Block, Widget},
+    },
 };
 
 /// Determines the placement of the values of a [labeled progress bar](Labeled).
@@ -22,7 +19,7 @@ pub enum Placement {
     /// To the right of the bar
     Right,
     /// The current value on the left, and the end value on the right
-    Split
+    Split,
 }
 
 impl Default for Placement {
@@ -45,10 +42,10 @@ pub struct Labeled<'a, T, S> {
     bar_style: Style,
 }
 
-impl <'a, T, S> Labeled<'a, T, S> 
+impl<'a, T, S> Labeled<'a, T, S>
 where
     T: fmt::Display + ops::Div<T, Output = f32>,
-    S: AsRef<[char]>
+    S: AsRef<[char]>,
 {
     builder_methods! {
         /// Sets the maximum (end) value of the progress bar.
@@ -78,20 +75,16 @@ where
     }
 
     fn draw_left(&self, pos: Span, max: Span, area: Rect, buf: &mut Buffer) -> Rect {
-        draw_with_sep(pos, max, area, self.style, buf)
-            .shrink_left(self.margin)
+        draw_with_sep(pos, max, area, self.style, buf).shrink_left(self.margin)
     }
 
     fn draw_right(&self, pos: Span, max: Span, area: Rect, buf: &mut Buffer) -> Rect {
-        let width = pos.width()
-            + SEP.chars().count()
-            + max.width();
-        
+        let width = pos.width() + SEP.chars().count() + max.width();
+
         let label_area = shrink_to(area, width as _);
         draw_with_sep(pos, max, label_area, self.style, buf);
 
-        area.shrink_right(width as _)
-            .shrink_right(self.margin)
+        area.shrink_right(width as _).shrink_right(self.margin)
     }
 
     fn draw_split(&self, pos: Span, max: Span, area: Rect, buf: &mut Buffer) -> Rect {
@@ -112,24 +105,21 @@ fn shrink_to(area: Rect, width: u16) -> Rect {
     area.shrink_left(area.width.saturating_sub(width))
 }
 
-impl <'a, T, S> Widget for Labeled<'a, T, S>
+impl<'a, T, S> Widget for Labeled<'a, T, S>
 where
     T: fmt::Display + ops::Div<T, Output = f32>,
-    S: AsRef<[char]> + Default
+    S: AsRef<[char]> + Default,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let max = to_span(&self.max, self.style);
         let pos = to_span(&self.pos, self.style);
 
-        let inner = self
-            .block
-            .as_ref()
-            .map_or(area, |block| block.inner(area));
+        let inner = self.block.as_ref().map_or(area, |block| block.inner(area));
 
         let inner = match self.placement {
             Placement::Left => self.draw_left(pos, max, inner, buf),
             Placement::Right => self.draw_right(pos, max, inner, buf),
-            Placement::Split => self.draw_split(pos, max, inner, buf)
+            Placement::Split => self.draw_split(pos, max, inner, buf),
         };
 
         if let Some(block) = self.block {
@@ -157,6 +147,5 @@ fn draw_with_sep(pos: Span, max: Span, area: Rect, style: Style, buf: &mut Buffe
     let (x, y) = buf.set_span(x, y, &slash, area.width);
     let (x, y) = buf.set_span(x, y, &max, area.width);
 
-    area.shrink_left(x - area.x)
-        .shrink_top(y - area.y)
+    area.shrink_left(x - area.x).shrink_top(y - area.y)
 }

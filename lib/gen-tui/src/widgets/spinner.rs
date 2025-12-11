@@ -2,19 +2,14 @@ use {
     builder::builder_method,
     std::{
         iter,
-        time::{Instant, Duration}
+        time::{Duration, Instant},
     },
-    tui::{
-        style::Style,
-        layout::Rect,
-        buffer::Buffer,
-        widgets::StatefulWidget
-    }
+    tui::{buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget},
 };
 
 pub struct Spinner {
     style: Style,
-    interval: Duration
+    interval: Duration,
 }
 
 impl Spinner {
@@ -23,7 +18,10 @@ impl Spinner {
     }
 
     pub fn per_rotation(self, duration: Duration) -> Self {
-        Self { interval: duration / SYMBOLS.len() as u32, ..self }
+        Self {
+            interval: duration / SYMBOLS.len() as u32,
+            ..self
+        }
     }
 }
 
@@ -31,32 +29,28 @@ impl Default for Spinner {
     fn default() -> Self {
         Spinner {
             style: <_>::default(),
-            interval: <_>::default()
-        }.per_rotation(Duration::from_millis(500))
+            interval: <_>::default(),
+        }
+        .per_rotation(Duration::from_millis(500))
     }
 }
 
 type Symbol = ([usize; 2], char);
 type Symbols = iter::Copied<std::slice::Iter<'static, Symbol>>;
 
-type Iter = iter::Cycle<iter::Zip<
-    Symbols,
-    iter::Chain<iter::Skip<Symbols>, std::option::IntoIter<Symbol>>>
+type Iter = iter::Cycle<
+    iter::Zip<Symbols, iter::Chain<iter::Skip<Symbols>, std::option::IntoIter<Symbol>>>,
 >;
 
 pub struct SpinnerState {
     symbols: Iter,
     last_symbols: (Symbol, Symbol),
-    last_step: Instant
+    last_step: Instant,
 }
 
 impl SpinnerState {
     fn steps(&mut self, interval: Duration) -> usize {
-        let steps = self
-            .last_step
-            .elapsed()
-            .as_millis()
-            / interval.as_millis();
+        let steps = self.last_step.elapsed().as_millis() / interval.as_millis();
 
         if steps > 0 {
             self.last_step = Instant::now()
@@ -70,7 +64,7 @@ impl Default for SpinnerState {
     fn default() -> Self {
         let mut symbols = symbol_pairs();
         let last_symbols = symbols.next().unwrap();
-        
+
         SpinnerState {
             symbols,
             last_symbols,
@@ -90,10 +84,8 @@ const SYMBOLS: &[Symbol] = &[
 
 fn symbol_pairs() -> Iter {
     symbols()
-        .zip(symbols()
-            .skip(1)
-            .chain(symbols().next())
-        ).cycle()
+        .zip(symbols().skip(1).chain(symbols().next()))
+        .cycle()
 }
 
 fn symbols() -> Symbols {
@@ -109,7 +101,9 @@ impl StatefulWidget for Spinner {
     type State = SpinnerState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        if area.width < WIDTH || area.height < HEIGHT { return }
+        if area.width < WIDTH || area.height < HEIGHT {
+            return
+        }
 
         let mut cells = [[' '; WIDTH as _]; HEIGHT as _];
 
@@ -117,10 +111,7 @@ impl StatefulWidget for Spinner {
 
         let (a, b) = match steps {
             0 => state.last_symbols,
-            n => state
-                .symbols
-                .nth(n - 1)
-                .unwrap()
+            n => state.symbols.nth(n - 1).unwrap(),
         };
 
         state.last_symbols = (a, b);

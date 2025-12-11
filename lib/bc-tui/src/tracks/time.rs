@@ -1,12 +1,8 @@
-use std::{
-    fmt,
-    ops,
-    time::Duration
-};
+use std::{fmt, ops, time::Duration};
 
 #[derive(Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Time {
-    duration: Duration
+    duration: Duration,
 }
 
 impl From<Duration> for Time {
@@ -29,7 +25,6 @@ impl ops::Div for Time {
     type Output = f32;
 
     fn div(self, rhs: Time) -> Self::Output {
-        self.duration.as_secs_f32()
-            / rhs.duration.as_secs_f32()
+        self.duration.as_secs_f32() / rhs.duration.as_secs_f32()
     }
 }

@@ -1,16 +1,13 @@
 #[cfg(feature = "query")]
 use {
-    url::Url,
+    crate::{data::Query, url::ApiUrl},
     serde::Deserialize,
-    crate::{
-        url::ApiUrl,
-        data::Query
-    }
+    url::Url,
 };
 
 use crate::data::{
     common::Id,
-    releases::{self, ReleaseKind}
+    releases::{self, ReleaseKind},
 };
 
 #[derive(Debug, Clone)]
@@ -18,7 +15,7 @@ use crate::data::{
 pub struct Outlet {
     #[cfg_attr(feature = "query", serde(flatten))]
     pub info: Info,
-    pub discography: Vec<Release>
+    pub discography: Vec<Release>,
 }
 
 #[cfg(feature = "query")]
@@ -42,19 +39,21 @@ pub struct Info {
     pub name: String,
     pub bio: Option<String>,
     pub location: Option<String>,
-    pub id: Id<Outlet>
+    pub id: Id<Outlet>,
 }
 
 #[derive(Debug, Copy, PartialEq, Eq, Clone)]
 pub enum OutletKind {
     Artist,
-    Label
+    Label,
 }
 
 #[cfg(feature = "query")]
 #[allow(clippy::unnecessary_wraps)]
 fn guess_outlet_kind<'de, D>(deserializer: D) -> Result<OutletKind, D::Error>
-where D: serde::Deserializer<'de> {
+where
+    D: serde::Deserializer<'de>,
+{
     // there's no proper way to find out whether an outlet
     // is a label or an artist, so we just assume that if
     // its array of artists is empty, it's probably an artist
@@ -75,5 +74,5 @@ pub struct Release {
     pub id: Id<releases::Release>,
     pub title: String,
     #[cfg_attr(feature = "query", serde(rename = "artist_name"))]
-    pub artist: Option<String>
+    pub artist: Option<String>,
 }

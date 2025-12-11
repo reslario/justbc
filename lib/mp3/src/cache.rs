@@ -3,7 +3,7 @@ use crate::span::FrameSpan;
 #[derive(Copy, Clone, Debug)]
 pub struct CachedFrame {
     pub span: FrameSpan,
-    pub pos: u64
+    pub pos: u64,
 }
 
 impl CachedFrame {
@@ -16,14 +16,14 @@ impl Default for CachedFrame {
     fn default() -> Self {
         CachedFrame {
             span: FrameSpan::empty(),
-            pos: 0
+            pos: 0,
         }
     }
 }
 
 #[derive(Default)]
 pub struct FrameCache {
-    frames: Vec<CachedFrame>
+    frames: Vec<CachedFrame>,
 }
 
 impl FrameCache {
@@ -35,8 +35,13 @@ impl FrameCache {
         self.frames[index] = frame
     }
 
-    pub fn enumerated<R>(&self, range: R) -> impl DoubleEndedIterator<Item = (usize, CachedFrame)> + '_
-    where R: std::slice::SliceIndex<[CachedFrame], Output = [CachedFrame]> {
+    pub fn enumerated<R>(
+        &self,
+        range: R,
+    ) -> impl DoubleEndedIterator<Item = (usize, CachedFrame)> + '_
+    where
+        R: std::slice::SliceIndex<[CachedFrame], Output = [CachedFrame]>,
+    {
         self.frames[range]
             .iter()
             .cloned()

@@ -1,13 +1,13 @@
-mod thread;
 mod buf;
+mod thread;
 
 use {
-    thread::*,
     buf::StreamBuf,
     std::{
+        io::{self, Read, Seek},
         sync,
-        io::{self, Read, Seek}
     },
+    thread::*,
 };
 
 /// The size of an [AudioStream](AudioStream)'s internal buffer.
@@ -32,15 +32,19 @@ type Synced<R> = sync::Arc<sync::RwLock<R>>;
 /// underlying reader, thus performing less (potentially blocking)
 /// work on each read, which helps avoid that problem.
 pub struct AudioStream<R>
-where R: Read + Send + Sync + 'static {
+where
+    R: Read + Send + Sync + 'static,
+{
     fetch_thread: FetchThread<R>,
     reader: Synced<R>,
     buf: StreamBuf,
-    done: bool
+    done: bool,
 }
 
-impl <R> AudioStream<R>
-where R: Read + Send + Sync + 'static {
+impl<R> AudioStream<R>
+where
+    R: Read + Send + Sync + 'static,
+{
     /// Creates a new `AudioStream` and fetches some data
     /// on its background thread.
     pub fn new(reader: R) -> io::Result<Self> {
@@ -48,7 +52,7 @@ where R: Read + Send + Sync + 'static {
             fetch_thread: FetchThread::new()?,
             reader: sync(reader),
             buf: StreamBuf::new(),
-            done: false
+            done: false,
         };
 
         stream.pre_fetch(REFILL);
@@ -57,8 +61,7 @@ where R: Read + Send + Sync + 'static {
     }
 
     fn pre_fetch(&mut self, bytes: usize) {
-        self.fetch_thread
-            .fetch(self.reader.clone(), bytes)
+        self.fetch_thread.fetch(self.reader.clone(), bytes)
     }
 
     fn maybe_append_pre_fetched(&mut self) -> io::Result<()> {
@@ -70,14 +73,12 @@ where R: Read + Send + Sync + 'static {
     }
 
     fn append_pre_fetched(&mut self) -> Option<io::Result<usize>> {
-        self.fetch_thread
-            .await_fetched()
-            .map(|res| {
-                let bytes = res?.bytes;
-                let len = bytes.len();
-                self.buf.append(&bytes);
-                Ok(len)
-            })
+        self.fetch_thread.await_fetched().map(|res| {
+            let bytes = res?.bytes;
+            let len = bytes.len();
+            self.buf.append(&bytes);
+            Ok(len)
+        })
     }
 
     fn fetch(&mut self, bytes: usize) -> io::Result<()> {
@@ -86,11 +87,11 @@ where R: Read + Send + Sync + 'static {
                 0 => {
                     self.done = true;
                     return Ok(())
-                },
+                }
                 n if n >= bytes => return Ok(()),
                 n => bytes - n,
             },
-            None => bytes
+            None => bytes,
         };
 
         if 0 == self.buf.read_from(&mut *lock(&self.reader), bytes)? {
@@ -109,8 +110,10 @@ fn lock<R>(reader: &Synced<R>) -> sync::RwLockWriteGuard<R> {
     reader.write().unwrap()
 }
 
-impl <R> Read for AudioStream<R>
-where R: Read + Send + Sync + 'static {
+impl<R> Read for AudioStream<R>
+where
+    R: Read + Send + Sync + 'static,
+{
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if self.done && self.buf.exhausted() {
             return Ok(0)
@@ -131,22 +134,24 @@ where R: Read + Send + Sync + 'static {
     }
 }
 
-impl <R> io::Seek for AudioStream<R>
-where R: Read + Seek + Send + Sync + 'static {
+impl<R> io::Seek for AudioStream<R>
+where
+    R: Read + Seek + Send + Sync + 'static,
+{
     fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
-        self.fetch_thread
-            .await_fetched()
-            .transpose()?;
+        self.fetch_thread.await_fetched().transpose()?;
 
         let mut reader = lock(&self.reader);
 
         let pos = match pos {
             io::SeekFrom::Start(pos) => pos as _,
-            io::SeekFrom::Current(offs) => if offs < 0 {
-                self.buf.pos() - -offs as usize
-            } else {
-                self.buf.pos() + offs as usize
-            },
+            io::SeekFrom::Current(offs) => {
+                if offs < 0 {
+                    self.buf.pos() - -offs as usize
+                } else {
+                    self.buf.pos() + offs as usize
+                }
+            }
             pos => {
                 self.buf.restart_from(reader.seek(pos)? as _);
                 return Ok(self.buf.pos() as _)
@@ -154,7 +159,8 @@ where R: Read + Seek + Send + Sync + 'static {
         };
 
         if !self.buf.seek(pos) {
-            self.buf.restart_from(reader.seek(io::SeekFrom::Start(pos as _))? as _)
+            self.buf
+                .restart_from(reader.seek(io::SeekFrom::Start(pos as _))? as _)
         }
 
         Ok(self.buf.pos() as _)
@@ -166,7 +172,7 @@ fn try_fill_buf(mut reader: impl Read, buf: &mut [u8]) -> io::Result<usize> {
     while read < buf.len() {
         read += match reader.read(&mut buf[read..])? {
             0 => break,
-            n => n
+            n => n,
         }
     }
 
@@ -177,30 +183,25 @@ fn try_fill_buf(mut reader: impl Read, buf: &mut [u8]) -> io::Result<usize> {
 mod test {
     use {
         super::*,
-        std::io::{self, Read}
+        std::io::{self, Read},
     };
 
     const NUM_BYTES: usize = 1_000_000;
 
     fn bytes() -> Vec<u8> {
-        (u8::MIN..u8::MAX)
-            .cycle()
-            .take(NUM_BYTES)
-            .collect()
+        (u8::MIN..u8::MAX).cycle().take(NUM_BYTES).collect()
     }
 
     #[test]
     fn output_matches() {
         let stream = AudioStream::new(io::Cursor::new(bytes())).unwrap();
-    
-        let mut iter = stream
-            .bytes()
-            .map(Result::unwrap)
-            .zip(bytes());
+
+        let mut iter = stream.bytes().map(Result::unwrap).zip(bytes());
 
         assert!(
             iter.all(|(l, r)| l == r),
-            "byte {} didn't match", NUM_BYTES - iter.count()
+            "byte {} didn't match",
+            NUM_BYTES - iter.count()
         )
     }
 
@@ -216,7 +217,7 @@ mod test {
             let end = streamed[read..].len().min(BUF_SIZE - CHUNK);
             read += match stream.read(&mut streamed[read..][..end]).unwrap() {
                 0 => break,
-                n => n
+                n => n,
             }
         }
 
@@ -226,12 +227,14 @@ mod test {
     fn compare_chunks(a: &[u8], b: &[u8]) {
         // compare in small chunks to avoid flooding the terminal
         let size = 100;
-        for (i, (bytes, streamed)) in a
-            .chunks(size)
-            .zip(b.chunks(size))
-            .enumerate()
-        {
-            assert_eq!(bytes, streamed, "chunk {} (pos {}) didn't match", i, i * size)
+        for (i, (bytes, streamed)) in a.chunks(size).zip(b.chunks(size)).enumerate() {
+            assert_eq!(
+                bytes,
+                streamed,
+                "chunk {} (pos {}) didn't match",
+                i,
+                i * size
+            )
         }
     }
 
@@ -239,31 +242,26 @@ mod test {
     fn latency() {
         struct ShoddyConnection<R> {
             reader: R,
-            state: f32
+            state: f32,
         }
-    
-        impl <R: Read> Read for ShoddyConnection<R> {
+
+        impl<R: Read> Read for ShoddyConnection<R> {
             fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
                 self.state += 1.;
-    
-                let ms = self
-                    .state
-                    .sin()
-                    .abs()
-                    * 300.;
-    
+
+                let ms = self.state.sin().abs() * 300.;
+
                 std::thread::sleep(std::time::Duration::from_millis(ms as _));
-                
+
                 self.reader.read(buf)
             }
         }
 
-        let mut stream = AudioStream::new(
-            ShoddyConnection {
-                reader: std::io::Cursor::new(bytes()),
-                state: 0.
-            }
-        ).unwrap();
+        let mut stream = AudioStream::new(ShoddyConnection {
+            reader: std::io::Cursor::new(bytes()),
+            state: 0.,
+        })
+        .unwrap();
 
         let mut buf = vec![0; NUM_BYTES];
         let mut read = 0;
@@ -272,7 +270,7 @@ mod test {
             let end = buf[read..].len().min(CHUNK);
             read += match stream.read(&mut buf[read..][..end]).unwrap() {
                 0 => break,
-                n => n
+                n => n,
             }
         }
 

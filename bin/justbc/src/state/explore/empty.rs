@@ -4,7 +4,11 @@ macro_rules! no_ops {
     () => {
         fn selection_down(&self, _widgets: &mut WidgetState) {}
         fn selection_up(&self, _widgets: &mut WidgetState) {}
-        fn confirm(&self, _core: &mut Core, _widgets: &mut WidgetState) -> Option<super::ExploreState> {
+        fn confirm(
+            &self,
+            _core: &mut Core,
+            _widgets: &mut WidgetState,
+        ) -> Option<super::ExploreState> {
             None
         }
     };

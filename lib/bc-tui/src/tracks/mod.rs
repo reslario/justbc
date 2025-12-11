@@ -1,7 +1,4 @@
-mod time;
 mod bar;
+mod time;
 
-pub use {
-    bar::*,
-    time::*
-};
+pub use {bar::*, time::*};

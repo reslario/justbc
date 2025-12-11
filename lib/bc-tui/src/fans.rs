@@ -1,36 +1,32 @@
 use {
     crate::symbols,
-    builder::builder_methods,
-    gen_tui::{
-        widgets,
-        layout::RectExt,
-        style::StyleExt
-    },
-    tui::{
-        style::Style,
-        layout::Rect,
-        buffer::Buffer,
-        text::Span,
-        widgets::{StatefulWidget, List, ListState, ListItem, Wrap},
-    },
     bandcamp_api::data::{
+        fans::{Collected, Fan},
         releases::ReleaseKind,
-        fans::{Fan, Collected}
-    }
+    },
+    builder::builder_methods,
+    gen_tui::{layout::RectExt, style::StyleExt, widgets},
+    tui::{
+        buffer::Buffer,
+        layout::Rect,
+        style::Style,
+        text::Span,
+        widgets::{List, ListItem, ListState, StatefulWidget, Wrap},
+    },
 };
 
 pub struct FanView<'a> {
     fan: &'a Fan,
     style: Style,
-    highlight_style: Style
+    highlight_style: Style,
 }
 
-impl <'a> FanView<'a> {
+impl<'a> FanView<'a> {
     pub fn new(fan: &'a Fan) -> FanView<'a> {
         FanView {
             fan,
             style: <_>::default(),
-            highlight_style: <_>::default()
+            highlight_style: <_>::default(),
         }
     }
 
@@ -43,7 +39,7 @@ impl <'a> FanView<'a> {
 #[derive(Default)]
 pub struct FanViewState {
     pub collection: ListState,
-    loading: bool
+    loading: bool,
 }
 
 impl FanViewState {
@@ -52,28 +48,35 @@ impl FanViewState {
     }
 }
 
-impl <'a> StatefulWidget for FanView<'a> {
+impl<'a> StatefulWidget for FanView<'a> {
     type State = FanViewState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let area = span_with_icon(symbols::FAN, Span::styled(&self.fan.name, self.style.bold()), area, buf);
-        let area = span_with_icon('📍', Span::styled(&self.fan.location, self.style), area, buf)
-            .shrink_top(1);
+        let area = span_with_icon(
+            symbols::FAN,
+            Span::styled(&self.fan.name, self.style.bold()),
+            area,
+            buf,
+        );
+        let area = span_with_icon(
+            '📍',
+            Span::styled(&self.fan.location, self.style),
+            area,
+            buf,
+        )
+        .shrink_top(1);
 
         let bold = |s| Span::styled(s, Style::default().bold());
 
         let mut text = vec![bold("About").into()];
-            
-        text.extend(self.fan.bio
-            .split('\n')
-            .map(<_>::into)
-        );
+
+        text.extend(self.fan.bio.split('\n').map(<_>::into));
 
         let height = widgets::draw_paragraph(
             text,
             |p| p.style(self.style).wrap(Wrap { trim: true }),
             area,
-            buf
+            buf,
         );
 
         let area = area.shrink_top(height + 1);
@@ -84,9 +87,11 @@ impl <'a> StatefulWidget for FanView<'a> {
             "Loading more..."
         } else {
             "Load more..."
-        }.into();
+        }
+        .into();
 
-        let items = self.fan
+        let items = self
+            .fan
             .collection
             .iter()
             .map(fmt_collected)
@@ -118,6 +123,6 @@ fn fmt_collected(collected: &Collected) -> String {
 fn icon(collected: &Collected) -> char {
     match collected.kind {
         ReleaseKind::Album => symbols::ALBUM,
-        ReleaseKind::Track => symbols::TRACK
+        ReleaseKind::Track => symbols::TRACK,
     }
 }

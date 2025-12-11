@@ -2,17 +2,17 @@ mod buf;
 mod tracked;
 
 use {
-    buf::Buf,
-    tracked::Tracked,
-    minimp3_sys as minimp3,
     crate::{
+        samples::{SampleBuf, Samples},
         Frame,
-        samples::{Samples, SampleBuf}
     },
+    buf::Buf,
+    minimp3_sys as minimp3,
     std::{
+        io::{self, Read, Seek},
         mem::MaybeUninit,
-        io::{self, Read, Seek}
     },
+    tracked::Tracked,
 };
 
 impl Frame {
@@ -21,7 +21,7 @@ impl Frame {
             samples: Samples::new(samples),
             channels: info.channels as _,
             sample_rate: info.hz as _,
-            pos
+            pos,
         }
     }
 }
@@ -29,10 +29,10 @@ impl Frame {
 pub struct Decoder<R> {
     reader: Tracked<R>,
     decoder: Box<minimp3::mp3dec_t>,
-    buf: Buf
+    buf: Buf,
 }
 
-impl <R: Read> Decoder<R> {
+impl<R: Read> Decoder<R> {
     pub fn new(reader: R) -> Decoder<R> {
         let mut decoder = uninit_box();
 
@@ -44,7 +44,7 @@ impl <R: Read> Decoder<R> {
         Decoder {
             reader: Tracked::new(reader),
             decoder,
-            buf: Buf::new()
+            buf: Buf::new(),
         }
     }
 
@@ -63,7 +63,10 @@ impl <R: Read> Decoder<R> {
         self.reader.pos() - self.buf.len() as u64
     }
 
-    fn decode_frame(&mut self, mut samples: SampleBuf) -> (SampleBuf, minimp3::mp3dec_frame_info_t) {
+    fn decode_frame(
+        &mut self,
+        mut samples: SampleBuf,
+    ) -> (SampleBuf, minimp3::mp3dec_frame_info_t) {
         let mut frame_info = MaybeUninit::uninit();
         let data = self.buf.as_slice();
         samples.set_max_len();
@@ -74,19 +77,19 @@ impl <R: Read> Decoder<R> {
                 data.as_ptr(),
                 data.len() as _,
                 samples.as_mut_ptr(),
-                frame_info.as_mut_ptr()
+                frame_info.as_mut_ptr(),
             ) as u16;
-    
+
             let frame_info = frame_info.assume_init();
-    
+
             samples.set_len(num * frame_info.channels as u16);
-    
+
             (samples, frame_info)
         }
     }
 }
 
-// this is a hacky workaround that can be replaced 
+// this is a hacky workaround that can be replaced
 // with Box::new_uninit() once it's stabilised
 fn uninit_box<T>() -> Box<MaybeUninit<T>> {
     let mut vec = Vec::with_capacity(1);
@@ -101,7 +104,7 @@ fn assume_init_box<T>(bx: Box<MaybeUninit<T>>) -> Box<T> {
     unsafe { Box::from_raw(Box::into_raw(bx).cast()) }
 }
 
-impl <R: Seek> Seek for Decoder<R> {
+impl<R: Seek> Seek for Decoder<R> {
     fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
         self.buf.clear();
         self.reader.seek(pos)

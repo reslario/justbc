@@ -1,22 +1,19 @@
 #[cfg(feature = "query")]
 use {
-    serde::Deserialize,
     crate::{
-        url::ApiUrl,
         data::{
-            Query,
+            common::{self, Id},
             outlets::Outlet,
-            common::{self, Id}
-        }
-    }
+            Query,
+        },
+        url::ApiUrl,
+    },
+    serde::Deserialize,
 };
 
 use {
     crate::data::common::Date,
-    std::{
-        fmt,
-        time::Duration
-    }
+    std::{fmt, time::Duration},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,7 +21,7 @@ use {
 pub struct Release {
     #[cfg_attr(feature = "query", serde(flatten))]
     pub info: Info,
-    pub tracks: Vec<Track>
+    pub tracks: Vec<Track>,
 }
 
 #[derive(Clone, Copy)]
@@ -32,7 +29,7 @@ pub struct Release {
 pub struct ReleaseArgs {
     pub id: Id<Release>,
     pub kind: ReleaseKind,
-    pub outlet: Id<Outlet>
+    pub outlet: Id<Outlet>,
 }
 
 #[cfg(feature = "query")]
@@ -57,7 +54,7 @@ pub enum ReleaseKind {
     #[cfg_attr(feature = "query", serde(alias = "t"))]
     Track,
     #[cfg_attr(feature = "query", serde(alias = "a"))]
-    Album
+    Album,
 }
 
 #[cfg(feature = "query")]
@@ -65,7 +62,7 @@ impl ReleaseKind {
     fn identifier(&self) -> &'static str {
         match self {
             ReleaseKind::Track => "t",
-            ReleaseKind::Album => "a"
+            ReleaseKind::Album => "a",
         }
     }
 }
@@ -86,8 +83,11 @@ pub struct Info {
     pub title: String,
     pub about: Option<String>,
     pub credits: Option<String>,
-    #[cfg_attr(feature = "query", serde(deserialize_with = "Date::deserialize_unix_timestamp"))]
-    pub release_date: Date
+    #[cfg_attr(
+        feature = "query",
+        serde(deserialize_with = "Date::deserialize_unix_timestamp")
+    )]
+    pub release_date: Date,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -97,20 +97,24 @@ pub struct Track {
     #[cfg_attr(feature = "query", serde(rename = "streaming_url"))]
     pub stream: Stream,
     #[cfg_attr(feature = "query", serde(deserialize_with = "f32_duration"))]
-    pub duration: Duration
+    pub duration: Duration,
 }
 
 #[cfg(feature = "query")]
-pub(super) fn f32_duration<'de, D>(deserializer: D) -> Result<std::time::Duration, D::Error> 
-where D: serde::Deserializer<'de> {
-    <_>::deserialize(deserializer)
-        .map(Duration::from_secs_f32)
+pub(super) fn f32_duration<'de, D>(deserializer: D) -> Result<std::time::Duration, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    <_>::deserialize(deserializer).map(Duration::from_secs_f32)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "query", derive(Deserialize))]
 #[cfg_attr(feature = "query", serde(rename_all = "kebab-case"))]
 pub struct Stream {
-    #[cfg_attr(feature = "query", serde(deserialize_with = "common::parse::deserialize_url"))]
-    pub mp3_128: url::Url
+    #[cfg_attr(
+        feature = "query",
+        serde(deserialize_with = "common::parse::deserialize_url")
+    )]
+    pub mp3_128: url::Url,
 }

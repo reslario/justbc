@@ -2,25 +2,32 @@ use {
     std::{
         io,
         ptr,
-        sync::atomic::{Ordering, AtomicBool},
+        sync::atomic::{AtomicBool, Ordering},
     },
     winapi::{
-        Class,
-        Interface,
         ctypes::c_void,
         shared::{
-            winerror::S_OK,
             guiddef::REFIID,
+            minwindef::{DWORD, ULONG},
+            winerror::S_OK,
             wtypes::PROPERTYKEY,
-            minwindef::{DWORD, ULONG}
         },
         um::{
             combaseapi,
-            winnt::{LPCWSTR, HRESULT},
+            mmdeviceapi::{
+                EDataFlow,
+                ERole,
+                IMMDeviceEnumerator,
+                IMMNotificationClient,
+                IMMNotificationClientVtbl,
+                MMDeviceEnumerator,
+            },
             unknwnbase::{IUnknown, IUnknownVtbl},
-            mmdeviceapi::{MMDeviceEnumerator, IMMDeviceEnumerator, IMMNotificationClient, IMMNotificationClientVtbl, EDataFlow, ERole}
-        }
-    }
+            winnt::{HRESULT, LPCWSTR},
+        },
+        Class,
+        Interface,
+    },
 };
 
 static UPDATED: AtomicBool = AtomicBool::new(false);
@@ -43,7 +50,7 @@ extern "system" fn OnDefaultDeviceChanged(
     _: *mut IMMNotificationClient,
     _: EDataFlow,
     _: ERole,
-    _: LPCWSTR
+    _: LPCWSTR,
 ) -> HRESULT {
     UPDATED.store(true, Ordering::SeqCst);
     S_OK
@@ -85,7 +92,7 @@ impl HResExt for HRESULT {
 // the values are boxed to ensure they don't move
 pub struct Watcher {
     client: Box<IMMNotificationClient>,
-    enumerator: Box<IMMDeviceEnumerator>
+    enumerator: Box<IMMDeviceEnumerator>,
 }
 
 impl crate::EventSource for Watcher {
@@ -113,27 +120,25 @@ impl crate::EventSource for Watcher {
 }
 
 fn init_com() -> io::Result<()> {
-    unsafe { 
-        combaseapi::CoInitializeEx(
-            ptr::null_mut(),
-            combaseapi::COINITBASE_MULTITHREADED
-        ).to_res()
-    } 
+    unsafe {
+        combaseapi::CoInitializeEx(ptr::null_mut(), combaseapi::COINITBASE_MULTITHREADED).to_res()
+    }
 }
 
 fn enumerator() -> io::Result<Box<IMMDeviceEnumerator>> {
     let mut enumerator = Box::into_raw(Box::new(IMMDeviceEnumerator {
-        lpVtbl: ptr::null() 
+        lpVtbl: ptr::null(),
     }));
 
-    unsafe { 
+    unsafe {
         combaseapi::CoCreateInstance(
             &MMDeviceEnumerator::uuidof(),
             ptr::null_mut(),
             combaseapi::CLSCTX_ALL,
             &IMMDeviceEnumerator::uuidof(),
             &mut enumerator as *mut *mut IMMDeviceEnumerator as *mut _,
-        ).to_res()?;
+        )
+        .to_res()?;
 
         Ok(Box::from_raw(enumerator))
     }
@@ -148,7 +153,7 @@ impl Drop for Watcher {
             // There seem to be COMplications with this crate's
             // and the `cpal` crate's use of the COM API, most likely
             // due to `cpal` not calling `CoUninitialize` (looking at the
-            // source code, it is actually present in the `Drop` impl of 
+            // source code, it is actually present in the `Drop` impl of
             // a thread-local value, but maybe `drop` never gets called?).
             //
             // This causes an access violation when the program exits, but

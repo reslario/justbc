@@ -1,15 +1,11 @@
-use {
-    std::fmt,
-    serde::Serialize,
-    crossterm::event::KeyEvent
-};
+use {crossterm::event::KeyEvent, serde::Serialize, std::fmt};
 
 pub use crossterm::event::{KeyCode, KeyModifiers};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Key {
     pub code: KeyCode,
-    pub modifiers: KeyModifiers
+    pub modifiers: KeyModifiers,
 }
 
 impl Key {
@@ -30,7 +26,7 @@ impl From<KeyEvent> for Key {
     fn from(event: KeyEvent) -> Self {
         Key {
             code: event.code,
-            modifiers: event.modifiers
+            modifiers: event.modifiers,
         }
     }
 }
@@ -61,7 +57,8 @@ impl fmt::Display for Key {
             Insert => string::INSERT,
             Null => string::NULL,
             Esc => string::ESC,
-        }.fmt(f)
+        }
+        .fmt(f)
     }
 }
 
@@ -75,12 +72,12 @@ impl fmt::Display for FmtModifiers {
 
         if mdf.intersects(KeyModifiers::CONTROL) {
             write(string::CTRL)?
-        } 
-        
+        }
+
         if mdf.intersects(KeyModifiers::ALT) {
             write(string::ALT)?
         }
-    
+
         if mdf.intersects(KeyModifiers::SHIFT) {
             write(string::SHIFT)?
         }
@@ -91,7 +88,9 @@ impl fmt::Display for FmtModifiers {
 
 impl Serialize for Key {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         self.to_string().serialize(serializer)
     }
 }
@@ -100,7 +99,7 @@ impl Serialize for Key {
 pub enum ParseError {
     InvalidModifier,
     MissingKey(KeyModifiers),
-    InvalidF(std::num::ParseIntError)
+    InvalidF(std::num::ParseIntError),
 }
 
 impl fmt::Display for ParseError {
@@ -108,7 +107,7 @@ impl fmt::Display for ParseError {
         match self {
             ParseError::InvalidModifier => f.write_str("invalid modifier"),
             ParseError::MissingKey(mdf) => write!(f, "missing key after '{}'", FmtModifiers(*mdf)),
-            ParseError::InvalidF(e) => write!(f, "invalid f key: {}", e)
+            ParseError::InvalidF(e) => write!(f, "invalid f key: {}", e),
         }
     }
 }
@@ -127,7 +126,7 @@ impl std::str::FromStr for Key {
             } else {
                 return Ok(Key {
                     code: KeyCode::Char(sep_char()),
-                    modifiers
+                    modifiers,
                 })
             };
 
@@ -144,8 +143,9 @@ fn add_modifier(s: &str) -> Result<Option<KeyModifiers>, ParseError> {
         string::ALT => KeyModifiers::ALT,
         string::SHIFT => KeyModifiers::SHIFT,
         "" => return Ok(None),
-        _ => return Err(ParseError::InvalidModifier)
-    }.into())
+        _ => return Err(ParseError::InvalidModifier),
+    }
+    .into())
 }
 
 fn skip_char(s: &str) -> &str {
@@ -178,10 +178,7 @@ fn parse_key(s: &str, modifiers: KeyModifiers) -> Result<Key, ParseError> {
         s => {
             let mut chars = s.chars();
 
-            match chars
-                .next()
-                .ok_or(ParseError::MissingKey(modifiers))?
-            {
+            match chars.next().ok_or(ParseError::MissingKey(modifiers))? {
                 'f' if !chars.as_str().is_empty() => chars
                     .as_str()
                     .parse()
@@ -192,19 +189,18 @@ fn parse_key(s: &str, modifiers: KeyModifiers) -> Result<Key, ParseError> {
         }
     };
 
-    Ok(Key {
-        code,
-        modifiers
-    })
+    Ok(Key { code, modifiers })
 }
 
 fn sep_char() -> char {
     string::SEP.parse().unwrap()
 }
 
-impl <'de> serde::Deserialize<'de> for Key {
+impl<'de> serde::Deserialize<'de> for Key {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: serde::Deserializer<'de> {
+    where
+        D: serde::Deserializer<'de>,
+    {
         <&str>::deserialize(deserializer)?
             .parse()
             .map_err(serde::de::Error::custom)
@@ -228,24 +224,23 @@ mod string {
         SHIFT = "shift",
 
         SPACE = "space",
-        BACKSPACE = "backspace", 
-        ENTER = "enter", 
-        LEFT = "left", 
-        RIGHT = "right", 
-        UP = "up", 
-        DOWN = "down", 
-        HOME = "home", 
-        END = "end", 
-        PAGE_UP = "pageup", 
-        PAGE_DOWN = "pagedown", 
-        TAB = "tab", 
-        BACK_TAB = "backtab", 
-        DELETE = "delete", 
-        INSERT = "insert", 
-        NULL = "null", 
+        BACKSPACE = "backspace",
+        ENTER = "enter",
+        LEFT = "left",
+        RIGHT = "right",
+        UP = "up",
+        DOWN = "down",
+        HOME = "home",
+        END = "end",
+        PAGE_UP = "pageup",
+        PAGE_DOWN = "pagedown",
+        TAB = "tab",
+        BACK_TAB = "backtab",
+        DELETE = "delete",
+        INSERT = "insert",
+        NULL = "null",
         ESC = "esc"
     }
-    
 }
 
 #[cfg(test)]
@@ -254,7 +249,10 @@ mod test {
 
     #[test]
     fn roundtrip() {
-        let key = Key { code: KeyCode::F(1), modifiers: KeyModifiers::all() };
+        let key = Key {
+            code: KeyCode::F(1),
+            modifiers: KeyModifiers::all(),
+        };
 
         assert_eq!(key, key.to_string().parse().unwrap())
     }
@@ -263,28 +261,52 @@ mod test {
     fn all_modifiers_char() {
         let key = "ctrl-alt-shift-a".parse().unwrap();
 
-        assert_eq!(Key { code: KeyCode::Char('a'), modifiers: KeyModifiers::all() }, key)
+        assert_eq!(
+            Key {
+                code: KeyCode::Char('a'),
+                modifiers: KeyModifiers::all()
+            },
+            key
+        )
     }
 
     #[test]
     fn no_modifiers() {
         let key = "backspace".parse().unwrap();
 
-        assert_eq!(Key { code: KeyCode::Backspace, modifiers: KeyModifiers::NONE }, key)
+        assert_eq!(
+            Key {
+                code: KeyCode::Backspace,
+                modifiers: KeyModifiers::NONE
+            },
+            key
+        )
     }
 
     #[test]
     fn weird_order() {
         let key = "alt-shift-ctrl-up".parse().unwrap();
 
-        assert_eq!(Key { code: KeyCode::Up, modifiers: KeyModifiers::all() }, key)
+        assert_eq!(
+            Key {
+                code: KeyCode::Up,
+                modifiers: KeyModifiers::all()
+            },
+            key
+        )
     }
 
     #[test]
     fn minus() {
         let key = "ctrl--".parse().unwrap();
 
-        assert_eq!(Key { code: KeyCode::Char('-'), modifiers: KeyModifiers::CONTROL }, key)
+        assert_eq!(
+            Key {
+                code: KeyCode::Char('-'),
+                modifiers: KeyModifiers::CONTROL
+            },
+            key
+        )
     }
 
     #[test]
@@ -298,7 +320,13 @@ mod test {
     fn f_key() {
         let key = "alt-f12".parse().unwrap();
 
-        assert_eq!(Key { code: KeyCode::F(12), modifiers: KeyModifiers::ALT }, key)
+        assert_eq!(
+            Key {
+                code: KeyCode::F(12),
+                modifiers: KeyModifiers::ALT
+            },
+            key
+        )
     }
 
     #[test]

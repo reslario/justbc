@@ -1,17 +1,17 @@
 use {
-    rodio::{Source, Sample},
+    rodio::{Sample, Source},
     std::{
-        time::Duration,
         sync::{
+            atomic::{AtomicU32, Ordering},
             Arc,
-            atomic::{AtomicU32, Ordering}
-        }
-    }
+        },
+        time::Duration,
+    },
 };
 
 #[derive(Default, Clone)]
 pub struct Ticks {
-    counter: Arc<AtomicU32>
+    counter: Arc<AtomicU32>,
 }
 
 impl Ticks {
@@ -35,21 +35,18 @@ pub struct Ticking<S> {
     interval: u32,
     remaining: u32,
     sample_rate: u32,
-    ticks: Ticks
+    ticks: Ticks,
 }
 
-impl <S> Ticking<S>
+impl<S> Ticking<S>
 where
     S: Source + Iterator,
-    S::Item: Sample 
+    S::Item: Sample,
 {
     pub fn new(source: S, interval: Duration, ticks: Ticks) -> Ticking<S> {
         let sample_rate = source.sample_rate();
 
-        let interval = interval.as_millis() as u32
-            * sample_rate
-            / 1000 
-            * source.channels() as u32;
+        let interval = interval.as_millis() as u32 * sample_rate / 1000 * source.channels() as u32;
 
         let interval = interval.max(1);
 
@@ -65,7 +62,9 @@ where
     fn update_sample_rate(&mut self) {
         let new = self.source.sample_rate();
 
-        if new == self.sample_rate { return }
+        if new == self.sample_rate {
+            return
+        }
 
         let ratio = new as f32 / self.sample_rate as f32;
 
@@ -78,12 +77,12 @@ where
     pub fn into_inner(self) -> S {
         self.source
     }
-} 
+}
 
-impl <S> Iterator for Ticking<S>
+impl<S> Iterator for Ticking<S>
 where
     S: Source + Iterator,
-    S::Item: Sample
+    S::Item: Sample,
 {
     type Item = S::Item;
 
@@ -101,10 +100,10 @@ where
     }
 }
 
-impl <S> Source for Ticking<S>
+impl<S> Source for Ticking<S>
 where
     S: Source + Iterator,
-    S::Item: Sample 
+    S::Item: Sample,
 {
     fn current_frame_len(&self) -> Option<usize> {
         self.source.current_frame_len()

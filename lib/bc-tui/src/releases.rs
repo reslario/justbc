@@ -1,33 +1,30 @@
 use {
     crate::tracks,
-    std::time::Duration,
+    bandcamp_api::data::releases::{Release, Track},
     builder::builder_methods,
-    bandcamp_api::data::releases::{Track, Release},
-    gen_tui::{
-        style::StyleExt,
-        layout::RectExt
-    },
+    gen_tui::{layout::RectExt, style::StyleExt},
+    std::time::Duration,
     tui::{
-        style::Style,
-        layout::Rect,
         buffer::Buffer,
-        text::{Text, Span, Spans},
-        widgets::{StatefulWidget, List, ListState, ListItem, Paragraph, Wrap}
-    }
+        layout::Rect,
+        style::Style,
+        text::{Span, Spans, Text},
+        widgets::{List, ListItem, ListState, Paragraph, StatefulWidget, Wrap},
+    },
 };
 
 pub struct ReleaseView<'a> {
     release: &'a Release,
     style: Style,
-    playing_style: Style
+    playing_style: Style,
 }
 
-impl <'a> ReleaseView<'a> {
+impl<'a> ReleaseView<'a> {
     pub fn new(release: &'a Release) -> Self {
-        Self { 
+        Self {
             release,
             style: <_>::default(),
-            playing_style: <_>::default()
+            playing_style: <_>::default(),
         }
     }
 
@@ -39,12 +36,8 @@ impl <'a> ReleaseView<'a> {
     fn date_duration(&self) -> String {
         use std::ops::Div;
 
-        let date = self
-            .release
-            .info
-            .release_date
-            .fmt_long();
-        
+        let date = self.release.info.release_date.fmt_long();
+
         if self.release.tracks.len() == 1 {
             date.to_string()
         } else {
@@ -56,8 +49,7 @@ impl <'a> ReleaseView<'a> {
                 .sum::<Duration>()
                 .as_secs_f32()
                 .div(60.)
-                .round()
-                as u16;
+                .round() as u16;
 
             format!(
                 "{} {} {} tracks, {} minute{}",
@@ -108,12 +100,12 @@ impl <'a> ReleaseView<'a> {
 
     fn draw_rest(&self, area: Rect, buf: &mut Buffer) {
         use tui::widgets::Widget;
-        
+
         let lines = self
             .titled_section(Self::about, "About")
             .chain(self.titled_section(Self::credits, "Credits"))
             .collect();
-        
+
         Paragraph::new(Text { lines })
             .style(self.style)
             .wrap(Wrap { trim: true })
@@ -121,24 +113,20 @@ impl <'a> ReleaseView<'a> {
     }
 
     fn titled_section<'s, F>(&'s self, f: F, title: &'s str) -> impl Iterator<Item = Spans<'s>>
-    where F: Fn(&'s Self) -> Option<&'s str> {
+    where
+        F: Fn(&'s Self) -> Option<&'s str>,
+    {
         f(self)
             .into_iter()
             .flat_map(move |section| titled(section.split('\n'), title))
     }
 
     fn about(&self) -> Option<&str> {
-        self.release
-            .info
-            .about
-            .as_deref()
+        self.release.info.about.as_deref()
     }
 
     fn credits(&self) -> Option<&str> {
-        self.release
-            .info
-            .credits
-            .as_deref()
+        self.release.info.credits.as_deref()
     }
 }
 
@@ -152,15 +140,12 @@ fn track_text(track: &Track, width: u16, style: Style) -> Spans {
     let rem = usize::from(width)
         .saturating_sub(time.width())
         .saturating_sub(SPACES);
-    
+
     let mut title = Span::styled(&track.title, style);
     let title_width = title.width();
-    
+
     let space = if title_width > rem {
-        trim_title(
-            title.content.to_mut(),
-            title_width - rem
-        );
+        trim_title(title.content.to_mut(), title_width - rem);
 
         Span::styled(SPACE, style)
     } else {
@@ -178,7 +163,10 @@ fn trim_title(title: &mut String, amount: usize) {
     title.push('…')
 }
 
-fn titled<'a>(lines: impl Iterator<Item = &'a str>, title: &'a str) -> impl Iterator<Item = Spans<'a>> {
+fn titled<'a>(
+    lines: impl Iterator<Item = &'a str>,
+    title: &'a str,
+) -> impl Iterator<Item = Spans<'a>> {
     let bold = Style::default().bold();
 
     with_newline(Span::styled(title, bold).into())
@@ -189,8 +177,7 @@ fn titled<'a>(lines: impl Iterator<Item = &'a str>, title: &'a str) -> impl Iter
 fn with_newline(spans: Spans) -> impl Iterator<Item = Spans> {
     use std::iter;
 
-    iter::once(spans)
-        .chain(iter::once(newline()))
+    iter::once(spans).chain(iter::once(newline()))
 }
 
 fn newline() -> Spans<'static> {
@@ -200,7 +187,7 @@ fn newline() -> Spans<'static> {
 #[derive(Default, Debug, Clone)]
 pub struct ReleaseViewState {
     track_list: ListState,
-    playing: Option<usize>
+    playing: Option<usize>,
 }
 
 impl std::ops::Deref for ReleaseViewState {
@@ -227,18 +214,13 @@ impl ReleaseViewState {
     }
 
     pub fn selection_down(&mut self) {
-        let new = self
-            .selected()
-            .map(|sel| sel + 1)
-            .unwrap_or_default();
+        let new = self.selected().map(|sel| sel + 1).unwrap_or_default();
 
         self.select(new.into())
     }
 
     pub fn selection_up(&mut self) {
-        let new = self
-            .selected()
-            .map(|sel| sel - 1);
+        let new = self.selected().map(|sel| sel - 1);
 
         self.select(new)
     }
@@ -248,7 +230,7 @@ impl ReleaseViewState {
             // all hail the phoenician number two
             (Some(s), Some(p)) if s == p => "𐤚⠀",
             (Some(_), _) => "▶ ",
-            _ => "  "
+            _ => "  ",
         }
     }
 
@@ -257,14 +239,14 @@ impl ReleaseViewState {
 
         if let Some(index) = self.playing {
             let mut playing = ListItem::new(Text { lines: vec![] });
-            
+
             mem::swap(&mut tracks[index], &mut playing);
             mem::swap(&mut tracks[index], &mut playing.style(style))
         }
     }
 }
 
-impl <'a> StatefulWidget for ReleaseView<'a> {
+impl<'a> StatefulWidget for ReleaseView<'a> {
     type State = ReleaseViewState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
@@ -276,45 +258,31 @@ impl <'a> StatefulWidget for ReleaseView<'a> {
 
 #[cfg(test)]
 mod test {
-    use {
-        super::*,
-        std::time::Duration,
-        bandcamp_api::data::releases::Stream
-    };
+    use {super::*, bandcamp_api::data::releases::Stream, std::time::Duration};
 
     #[test]
     fn track_text() {
         let mut track = Track {
             title: "short".into(),
-            stream: Stream { mp3_128: "a://b.c".parse().unwrap() },
+            stream: Stream {
+                mp3_128: "a://b.c".parse().unwrap(),
+            },
             duration: Duration::from_secs(66),
         };
 
-        assert_eq!(
-            "short                       1:06",
-            formatted(&track)
-        );
+        assert_eq!("short                       1:06", formatted(&track));
 
         track.title = "way too long to fit into 30 columns".into();
 
-        assert_eq!(
-            "way too long to fit into…   1:06",
-            formatted(&track)
-        );
+        assert_eq!("way too long to fit into…   1:06", formatted(&track));
 
         track.title = "just the right length! :)".into();
 
-        assert_eq!(
-            "just the right length! :)   1:06",
-            formatted(&track)
-        );
+        assert_eq!("just the right length! :)   1:06", formatted(&track));
 
         track.title = "just one char too long! :(".into();
 
-        assert_eq!(
-            "just one char too long! …   1:06",
-            formatted(&track)
-        );
+        assert_eq!("just one char too long! …   1:06", formatted(&track));
     }
 
     fn formatted(track: &Track) -> String {

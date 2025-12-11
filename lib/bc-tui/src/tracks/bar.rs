@@ -1,25 +1,14 @@
 use {
     crate::tracks::Time,
-    std::time::Duration,
-    builder::builder_methods,
     bandcamp_api::data::releases::Track,
+    builder::builder_methods,
     gen_tui::{
-        style::StyleExt,
         layout::RectExt,
-        widgets::{
-            progress,
-            ProgressBar,
-            ScrollToFit,
-            ScrollToFitState
-        }
+        style::StyleExt,
+        widgets::{progress, ProgressBar, ScrollToFit, ScrollToFitState},
     },
-    tui::{
-        text::Span,
-        style::Style,
-        layout::Rect,
-        buffer::Buffer,
-        widgets::StatefulWidget
-    }
+    std::time::Duration,
+    tui::{buffer::Buffer, layout::Rect, style::Style, text::Span, widgets::StatefulWidget},
 };
 
 pub struct PlayBar<'a> {
@@ -28,10 +17,10 @@ pub struct PlayBar<'a> {
     elapsed: Time,
     volume: f32,
     style: Style,
-    bar_style: Style
+    bar_style: Style,
 }
 
-impl <'a> PlayBar<'a> {
+impl<'a> PlayBar<'a> {
     pub fn new(artist: &'a str, track: &'a Track) -> PlayBar<'a> {
         PlayBar {
             artist,
@@ -39,7 +28,7 @@ impl <'a> PlayBar<'a> {
             elapsed: <_>::default(),
             volume: 1.,
             style: <_>::default(),
-            bar_style: <_>::default()
+            bar_style: <_>::default(),
         }
     }
 
@@ -55,8 +44,7 @@ impl <'a> PlayBar<'a> {
 
         let draw = Rect { width, ..area };
 
-        let text = ScrollToFit::default()
-            .interval(Duration::from_millis(500));
+        let text = ScrollToFit::default().interval(Duration::from_millis(500));
 
         let style = self.style.bold();
 
@@ -64,8 +52,11 @@ impl <'a> PlayBar<'a> {
             .spans(Span::styled(self.artist, style))
             .render(draw, buf, &mut state.artist);
 
-        text.spans(Span::styled(&self.track.title, style))
-            .render(draw.shrink_top(2), buf, &mut state.title);
+        text.spans(Span::styled(&self.track.title, style)).render(
+            draw.shrink_top(2),
+            buf,
+            &mut state.title,
+        );
 
         area.shrink_left(width)
     }
@@ -79,9 +70,7 @@ impl <'a> PlayBar<'a> {
             f32::round(self.volume * 100.)
         );
 
-        let Rect { x, y, .. } = area
-            .from_right(WIDTH)
-            .shrink_top(1);
+        let Rect { x, y, .. } = area.from_right(WIDTH).shrink_top(1);
 
         buf.set_span(x, y, &Span::styled(text, self.style), WIDTH);
 
@@ -93,11 +82,8 @@ impl <'a> PlayBar<'a> {
 
         let margin = 5.min(area.width / 20);
 
-        let area = area
-            .shrink_top(1)
-            .shrink_left(margin)
-            .shrink_right(margin);
-        
+        let area = area.shrink_top(1).shrink_left(margin).shrink_right(margin);
+
         ProgressBar::labeled()
             .max(self.track.duration.into())
             .pos(self.elapsed)
@@ -122,10 +108,10 @@ fn speaker(volume: f32) -> char {
 #[derive(Default)]
 pub struct PlayBarState {
     artist: ScrollToFitState,
-    title: ScrollToFitState
+    title: ScrollToFitState,
 }
 
-impl <'a> StatefulWidget for PlayBar<'a> {
+impl<'a> StatefulWidget for PlayBar<'a> {
     type State = PlayBarState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {

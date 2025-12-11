@@ -3,43 +3,43 @@
 use {
     std::{
         ptr,
-        sync::atomic::{AtomicPtr, Ordering::SeqCst}
+        sync::atomic::{AtomicPtr, Ordering::SeqCst},
     },
     winapi::{
         ctypes::{c_int, c_short},
+        shared::{
+            minwindef::{
+                BOOL,
+                FALSE,
+                HINSTANCE__ as HINSTANCE,
+                LPARAM,
+                LPVOID,
+                LRESULT,
+                TRUE,
+                ULONG,
+                WPARAM,
+            },
+            ntdef::HANDLE,
+            windef::{HHOOK__ as HHOOK, HWND as HWNDPTR, HWND__ as HWND},
+        },
         um::{
             winnt::DLL_PROCESS_ATTACH,
             winuser::{
-                WH_SHELL,
-                PostMessageA,
-                WM_APPCOMMAND,
                 CallNextHookEx,
-                HSHELL_APPCOMMAND,
+                PostMessageA,
                 SetWindowsHookExA,
                 UnhookWindowsHookEx,
-                GET_APPCOMMAND_LPARAM,
-                APPCOMMAND_MEDIA_STOP,
-                APPCOMMAND_MEDIA_PLAY_PAUSE,
                 APPCOMMAND_MEDIA_NEXTTRACK,
-                APPCOMMAND_MEDIA_PREVIOUSTRACK
-            }
+                APPCOMMAND_MEDIA_PLAY_PAUSE,
+                APPCOMMAND_MEDIA_PREVIOUSTRACK,
+                APPCOMMAND_MEDIA_STOP,
+                GET_APPCOMMAND_LPARAM,
+                HSHELL_APPCOMMAND,
+                WH_SHELL,
+                WM_APPCOMMAND,
+            },
         },
-        shared::{
-            ntdef::HANDLE,
-            windef::{HWND__ as HWND, HWND as HWNDPTR, HHOOK__ as HHOOK},
-            minwindef::{
-                BOOL,
-                TRUE,
-                FALSE,
-                ULONG,
-                LPVOID,
-                WPARAM,
-                LPARAM,
-                LRESULT,
-                HINSTANCE__ as HINSTANCE
-            }
-        }
-    }
+    },
 };
 
 const fn atomic_null<T>() -> AtomicPtr<T> {
@@ -62,14 +62,14 @@ const MEDIA_COMMANDS: &[MediaCommand] = &[
     APPCOMMAND_MEDIA_PLAY_PAUSE,
     APPCOMMAND_MEDIA_NEXTTRACK,
     APPCOMMAND_MEDIA_PREVIOUSTRACK,
-    APPCOMMAND_MEDIA_STOP
+    APPCOMMAND_MEDIA_STOP,
 ];
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "system" fn DllMain(instance: HANDLE, reason: ULONG, _: LPVOID) -> BOOL {
-	if reason == DLL_PROCESS_ATTACH {
-        INSTANCE.store(instance.cast(), SeqCst) 
+    if reason == DLL_PROCESS_ATTACH {
+        INSTANCE.store(instance.cast(), SeqCst)
     }
 
     TRUE
@@ -79,21 +79,20 @@ pub extern "system" fn DllMain(instance: HANDLE, reason: ULONG, _: LPVOID) -> BO
 pub extern "system" fn set_shell_hook(window: HWNDPTR) -> BOOL {
     let notify_window = NOTIFY_WINDOW.load(SeqCst);
 
-	if window.is_null() || !notify_window.is_null() {
+    if window.is_null() || !notify_window.is_null() {
         return FALSE
     }
 
-	let hook = unsafe { 
+    let hook = unsafe {
         SetWindowsHookExA(
             // hook in before messages reach any app
             WH_SHELL,
             Some(handle_message),
             INSTANCE.load(SeqCst),
             // hook into all apps
-            0
-        ) 
+            0,
+        )
     };
-
 
     if !hook.is_null() {
         SHELL_HOOK.store(hook, SeqCst);
@@ -114,7 +113,7 @@ pub extern "system" fn unset_shell_hook(window: HWNDPTR) -> BOOL {
     }
 
     let hook = SHELL_HOOK.swap(ptr::null_mut(), SeqCst);
-    
+
     if unsafe { UnhookWindowsHookEx(hook) } == TRUE {
         NOTIFY_WINDOW.store(ptr::null_mut(), SeqCst);
         TRUE
@@ -126,12 +125,11 @@ pub extern "system" fn unset_shell_hook(window: HWNDPTR) -> BOOL {
 extern "system" fn handle_message(code: c_int, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     let notify_window = NOTIFY_WINDOW.load(SeqCst);
 
-    if code == HSHELL_APPCOMMAND && !notify_window.is_null()
-        && MEDIA_COMMANDS.contains(&GET_APPCOMMAND_LPARAM(l_param)) 
+    if code == HSHELL_APPCOMMAND
+        && !notify_window.is_null()
+        && MEDIA_COMMANDS.contains(&GET_APPCOMMAND_LPARAM(l_param))
     {
-        return unsafe {
-            PostMessageA(notify_window, WM_APPCOMMAND, w_param, l_param) as _
-        }
+        return unsafe { PostMessageA(notify_window, WM_APPCOMMAND, w_param, l_param) as _ }
     }
 
     unsafe { CallNextHookEx(ptr::null_mut(), code, w_param, l_param) }

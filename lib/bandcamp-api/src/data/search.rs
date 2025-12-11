@@ -1,24 +1,21 @@
 #[cfg(feature = "query")]
 use {
-    url::Url,
+    crate::{data::Query, url::ApiUrl},
     serde::Deserialize,
-    crate::{
-        url::ApiUrl,
-        data::Query
-    }
+    url::Url,
 };
 
 use crate::data::{
-    fans,
-    releases,
     common::Id,
-    outlets::{self, OutletKind}
+    fans,
+    outlets::{self, OutletKind},
+    releases,
 };
 
 #[derive(Debug)]
 #[cfg_attr(feature = "query", derive(Deserialize))]
 pub struct Search {
-    pub results: Vec<SearchResult>
+    pub results: Vec<SearchResult>,
 }
 
 #[cfg(feature = "query")]
@@ -43,21 +40,26 @@ pub enum SearchResult {
     #[cfg_attr(feature = "query", serde(rename = "t"))]
     Track(Track),
     #[cfg_attr(feature = "query", serde(rename = "f"))]
-    Fan(Fan)
+    Fan(Fan),
 }
 
 #[derive(Debug)]
 #[cfg_attr(feature = "query", derive(Deserialize))]
 pub struct Outlet {
-    #[cfg_attr(feature = "query", serde(rename = "is_label", deserialize_with = "outlet_kind"))]
+    #[cfg_attr(
+        feature = "query",
+        serde(rename = "is_label", deserialize_with = "outlet_kind")
+    )]
     pub kind: OutletKind,
     pub name: String,
-    pub id: Id<outlets::Outlet>
+    pub id: Id<outlets::Outlet>,
 }
 
 #[cfg(feature = "query")]
 fn outlet_kind<'de, D>(deserializer: D) -> Result<OutletKind, D::Error>
-where D: serde::Deserializer<'de> {
+where
+    D: serde::Deserializer<'de>,
+{
     if <_>::deserialize(deserializer)? {
         Ok(OutletKind::Label)
     } else {
@@ -73,7 +75,7 @@ pub struct Album {
     pub artist: String,
     pub id: Id<releases::Release>,
     #[cfg_attr(feature = "query", serde(rename = "band_id"))]
-    pub artist_id: Id<outlets::Outlet>
+    pub artist_id: Id<outlets::Outlet>,
 }
 
 #[derive(Debug)]
@@ -87,12 +89,12 @@ pub struct Track {
     #[cfg_attr(feature = "query", serde(rename = "band_name"))]
     pub artist: String,
     #[cfg_attr(feature = "query", serde(rename = "band_id"))]
-    pub artist_id: Id<outlets::Outlet>
+    pub artist_id: Id<outlets::Outlet>,
 }
 
 #[derive(Debug)]
 #[cfg_attr(feature = "query", derive(Deserialize))]
 pub struct Fan {
     pub name: String,
-    pub id: Id<fans::Fan>
+    pub id: Id<fans::Fan>,
 }

@@ -1,7 +1,4 @@
 mod bar;
 mod labeled;
 
-pub use {
-    bar::*,
-    labeled::*
-};
+pub use {bar::*, labeled::*};

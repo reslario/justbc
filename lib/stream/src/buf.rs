@@ -1,22 +1,17 @@
-use {
-    std::{
-        io,
-        ops::Range
-    }
-};
+use std::{io, ops::Range};
 
 /// Tracks the start, end and position of a
 /// [StreamBuffer](StreamBuffer) within a stream.
 struct StreamCursor {
     range: Range<usize>,
-    pos: usize
+    pos: usize,
 }
 
 impl Default for StreamCursor {
     fn default() -> Self {
         StreamCursor {
             range: 0..0,
-            pos: 0
+            pos: 0,
         }
     }
 }
@@ -40,11 +35,9 @@ impl StreamCursor {
     fn extend(&mut self, by: usize) {
         self.range.end += by;
     }
-    
+
     fn ready(&self) -> usize {
-        self.end()
-            .checked_sub(self.pos)
-            .unwrap_or_default()
+        self.end().checked_sub(self.pos).unwrap_or_default()
     }
 
     fn consumed(&self) -> usize {
@@ -59,7 +52,7 @@ impl StreamCursor {
 /// Internal buffer used in an [AudioStream](crate::AudioStream).
 pub struct StreamBuf {
     buf: Vec<u8>,
-    cursor: StreamCursor
+    cursor: StreamCursor,
 }
 
 impl StreamBuf {
@@ -68,7 +61,7 @@ impl StreamBuf {
     pub fn new() -> StreamBuf {
         StreamBuf {
             buf: Vec::with_capacity(Self::SIZE),
-            cursor: <_>::default()
+            cursor: <_>::default(),
         }
     }
 
@@ -108,7 +101,7 @@ impl StreamBuf {
     fn from_end(&mut self, num: usize) -> &mut [u8] {
         let start = self.len() - num;
         &mut self.buf[start..]
-    } 
+    }
 
     pub fn append(&mut self, bytes: &[u8]) {
         let space = self.space();
@@ -120,8 +113,7 @@ impl StreamBuf {
             let (a, b) = bytes.split_at(split);
             self.extend(a);
             let rem = b.len();
-            self.advance(rem)
-                .copy_from_slice(b)
+            self.advance(rem).copy_from_slice(b)
         }
     }
 

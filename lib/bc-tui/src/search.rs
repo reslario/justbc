@@ -1,26 +1,26 @@
 use {
     crate::symbols,
-    std::borrow::Cow,
-    builder::builder_methods,
     bandcamp_api::data::{
         outlets::OutletKind,
-        search::{SearchResult, Track, Album},
+        search::{Album, SearchResult, Track},
     },
+    builder::builder_methods,
+    std::borrow::Cow,
     tui::{
-        style::Style,
-        layout::Rect,
         buffer::Buffer,
-        widgets::{StatefulWidget, List, ListState, ListItem}
-    }
+        layout::Rect,
+        style::Style,
+        widgets::{List, ListItem, ListState, StatefulWidget},
+    },
 };
 
 pub struct ResultList<'a> {
     results: &'a [SearchResult],
     style: Style,
-    highlight_style: Style
+    highlight_style: Style,
 }
 
-impl <'a> ResultList<'a> {
+impl<'a> ResultList<'a> {
     pub fn new(results: &'a [SearchResult]) -> ResultList<'a> {
         ResultList {
             results,
@@ -37,7 +37,7 @@ impl <'a> ResultList<'a> {
 
 #[derive(Default)]
 pub struct ResultListState {
-    list: ListState
+    list: ListState,
 }
 
 impl std::ops::Deref for ResultListState {
@@ -54,15 +54,11 @@ impl std::ops::DerefMut for ResultListState {
     }
 }
 
-impl <'a> StatefulWidget for ResultList<'a> {
+impl<'a> StatefulWidget for ResultList<'a> {
     type State = ResultListState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = self
-            .results
-            .iter()
-            .map(list_item)
-            .collect::<Vec<_>>();
+        let items = self.results.iter().map(list_item).collect::<Vec<_>>();
 
         List::new(items)
             .style(self.style)
@@ -72,9 +68,7 @@ impl <'a> StatefulWidget for ResultList<'a> {
 }
 
 fn list_item(result: &SearchResult) -> ListItem {
-    ListItem::new(
-        format!("{} {}", icon(result), text(result))
-    )
+    ListItem::new(format!("{} {}", icon(result), text(result)))
 }
 
 fn icon(result: &SearchResult) -> char {
@@ -84,7 +78,7 @@ fn icon(result: &SearchResult) -> char {
         SearchResult::Fan(_) => symbols::FAN,
         SearchResult::Outlet(o) => match o.kind {
             OutletKind::Artist => symbols::ARTIST,
-            OutletKind::Label => symbols::LABEL
+            OutletKind::Label => symbols::LABEL,
         },
     }
 }
@@ -96,7 +90,7 @@ fn text(result: &SearchResult) -> Cow<str> {
         R::Track(track) => track_text(track).into(),
         R::Album(album) => album_text(album).into(),
         R::Outlet(outlet) => outlet.name.as_str().into(),
-        R::Fan(fan) => fan.name.as_str().into()
+        R::Fan(fan) => fan.name.as_str().into(),
     }
 }
 

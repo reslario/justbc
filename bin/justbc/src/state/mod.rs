@@ -1,45 +1,29 @@
-mod explore;
 mod core;
+mod explore;
 
-pub use {
-    self::core::Core,
-    explore::ExploreState
-};
+pub use {self::core::Core, explore::ExploreState};
 
 use {
-    play::Player,
-    fetch::Fetcher,
-    explore::Explore,
-    media_keys::MediaKey,
-    input::binds::Bindings,
-    self::core::{Audio, Stream, Focus},
-    gen_tui::widgets::input::Message as InputMessage,
+    self::core::{Audio, Focus, Stream},
     crate::{
+        cfg::{self, StateConfig},
         play::Queue,
-        cfg::{self, StateConfig}
     },
-    std::{
-        ops::Add,
-        error::Error,
-        time::Duration
-    },
-    bc_tui::{
-        nav::NavViewState,
-        tracks::PlayBarState,
-        releases::ReleaseViewState,
-    },
-    bandcamp_api::data::{
-        fans::Fan,
-        search::Search,
-        outlets::Outlet,
-        releases::Release
-    }
+    bandcamp_api::data::{fans::Fan, outlets::Outlet, releases::Release, search::Search},
+    bc_tui::{nav::NavViewState, releases::ReleaseViewState, tracks::PlayBarState},
+    explore::Explore,
+    fetch::Fetcher,
+    gen_tui::widgets::input::Message as InputMessage,
+    input::binds::Bindings,
+    media_keys::MediaKey,
+    play::Player,
+    std::{error::Error, ops::Add, time::Duration},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Active {
     Library,
-    Explore
+    Explore,
 }
 
 impl Active {
@@ -62,7 +46,7 @@ impl Default for Active {
 pub struct Navigation {
     pub library: (),
     pub explore: ExploreState,
-    pub active: Active
+    pub active: Active,
 }
 
 #[derive(Default)]
@@ -70,14 +54,14 @@ pub struct WidgetState {
     pub nav: NavViewState,
     pub play_bar: PlayBarState,
     pub release: ReleaseViewState,
-    pub release_scroll: u16
+    pub release_scroll: u16,
 }
 
 pub struct State {
     pub core: Core,
     pub navigation: Navigation,
     pub widgets: WidgetState,
-    pub error: Option<Box<dyn Error>>
+    pub error: Option<Box<dyn Error>>,
 }
 
 impl State {
@@ -85,10 +69,8 @@ impl State {
         let mut player = Player::new();
         player.set_volume(cfg.general.volume);
 
-        let bindings = cfg.bindings
-            .map(Bindings::patched)
-            .unwrap_or_default();
-        
+        let bindings = cfg.bindings.map(Bindings::patched).unwrap_or_default();
+
         State {
             core: Core {
                 bindings,
@@ -101,7 +83,7 @@ impl State {
             },
             navigation: <_>::default(),
             widgets: <_>::default(),
-            error: None
+            error: None,
         }
     }
 
@@ -125,7 +107,7 @@ impl State {
             TabExplore => {
                 self.navigation.active = Active::Explore;
                 self.focus(Focus::NavBody)
-            },
+            }
             CycleTabs => self.navigation.active.cycle(),
             SelectionDown => self.selection_down(),
             SelectionUp => self.selection_up(),
@@ -160,34 +142,33 @@ impl State {
     fn selection_down(&mut self) {
         match self.core.focus {
             Focus::NavBody => match self.navigation.active {
-                Active::Explore => self.navigation.explore
-                    .selection_down(&mut self.widgets),
+                Active::Explore => self.navigation.explore.selection_down(&mut self.widgets),
                 Active::Library => {}
             },
-            Focus::Release => if let Some(rel) = self.core.release.as_ref() {
-                if can_select_down(self.widgets.release.selected(), rel.tracks.len()) {
-                    self.widgets.release.selection_down()
+            Focus::Release => {
+                if let Some(rel) = self.core.release.as_ref() {
+                    if can_select_down(self.widgets.release.selected(), rel.tracks.len()) {
+                        self.widgets.release.selection_down()
+                    }
                 }
-            },
+            }
             _ => {}
         }
-        
     }
 
     fn selection_up(&mut self) {
         match self.core.focus {
             Focus::NavBody => match self.navigation.active {
-                Active::Explore => self.navigation.explore
-                    .selection_up(&mut self.widgets),
+                Active::Explore => self.navigation.explore.selection_up(&mut self.widgets),
                 Active::Library => {}
             },
-            Focus::Release => if self.core.release.is_some() 
-                && can_select_up(self.widgets.release.selected()) {
+            Focus::Release => {
+                if self.core.release.is_some() && can_select_up(self.widgets.release.selected()) {
                     self.widgets.release.selection_up()
-            },
+                }
+            }
             _ => {}
         }
-        
     }
 
     fn scroll_down(&mut self) {
@@ -196,8 +177,9 @@ impl State {
                 Active::Explore => self.widgets.nav.scroll_down(),
                 Active::Library => {}
             },
-            Focus::Release => self.widgets.release_scroll = 
-                self.widgets.release_scroll.saturating_add(1),
+            Focus::Release => {
+                self.widgets.release_scroll = self.widgets.release_scroll.saturating_add(1)
+            }
             _ => {}
         }
     }
@@ -208,8 +190,9 @@ impl State {
                 Active::Explore => self.widgets.nav.scroll_up(),
                 Active::Library => {}
             },
-            Focus::Release => self.widgets.release_scroll = 
-                self.widgets.release_scroll.saturating_sub(1),
+            Focus::Release => {
+                self.widgets.release_scroll = self.widgets.release_scroll.saturating_sub(1)
+            }
             _ => {}
         }
     }
@@ -217,25 +200,34 @@ impl State {
     fn confirm(&mut self) {
         match self.core.focus {
             Focus::NavBody => match self.navigation.active {
-                Active::Explore => if let Some(xp) = self.navigation.explore
-                    .confirm(&mut self.core, &mut self.widgets) {
+                Active::Explore => {
+                    if let Some(xp) = self
+                        .navigation
+                        .explore
+                        .confirm(&mut self.core, &mut self.widgets)
+                    {
                         self.navigation.explore = xp;
-                    },
+                    }
+                }
                 Active::Library => {}
             },
-            Focus::Release => if let Some(track) = self.widgets.release.selected() {
-                if self.widgets.release.playing() == Some(track) {
-                    self.toggle_play()
-                } else {
-                    self.core.play(track)
+            Focus::Release => {
+                if let Some(track) = self.widgets.release.selected() {
+                    if self.widgets.release.playing() == Some(track) {
+                        self.toggle_play()
+                    } else {
+                        self.core.play(track)
+                    }
                 }
-            },
+            }
             _ => {}
         }
     }
 
     fn handle_typing(&mut self, key: input::Key) {
-        if self.core.focus != Focus::Search { return }
+        if self.core.focus != Focus::Search {
+            return
+        }
 
         let input = &mut self.widgets.nav.input;
 
@@ -247,9 +239,9 @@ impl State {
                         self.core.fetcher.query::<Search, _>(input.text());
                         self.navigation.explore = ExploreState::loading();
                         self.focus(Focus::NavBody)
-                    },
+                    }
                     Active::Library => {}
-                }
+                },
             }
         }
     }
@@ -258,15 +250,21 @@ impl State {
         const FIRST: Option<usize> = Some(0);
 
         match response {
-            fetch::Response::Search(s) => if self.try_set_explore(s, ExploreState::Search) {
-                self.widgets.nav.results().select(FIRST)
-            },
-            fetch::Response::Outlet(o) => if self.try_set_explore(o, ExploreState::Outlet) {
-                self.widgets.nav.outlet().select(FIRST)
-            },
-            fetch::Response::Release(r) => if self.try_set_explore(r, ExploreState::Release) {
-                self.widgets.nav.release().select(FIRST)
-            },
+            fetch::Response::Search(s) => {
+                if self.try_set_explore(s, ExploreState::Search) {
+                    self.widgets.nav.results().select(FIRST)
+                }
+            }
+            fetch::Response::Outlet(o) => {
+                if self.try_set_explore(o, ExploreState::Outlet) {
+                    self.widgets.nav.outlet().select(FIRST)
+                }
+            }
+            fetch::Response::Release(r) => {
+                if self.try_set_explore(r, ExploreState::Release) {
+                    self.widgets.nav.release().select(FIRST)
+                }
+            }
             fetch::Response::Fan(fan) => {
                 self.try_do(|this| match fan {
                     Ok(mut fan) => {
@@ -274,7 +272,7 @@ impl State {
                             ExploreState::Fan(existing) if existing.id == fan.id => {
                                 existing.collection.append(&mut fan.collection);
                                 this.widgets.nav.fan().set_loading(false);
-                            },
+                            }
                             _ => {
                                 this.navigation.explore = ExploreState::Fan(fan);
                                 this.widgets.nav.fan().collection.select(FIRST);
@@ -282,33 +280,29 @@ impl State {
                         }
 
                         Ok(())
-                    },
+                    }
                     Err(e) => {
                         this.navigation.explore = ExploreState::blank();
                         Err(e.into())
                     }
                 });
-            },
+            }
             fetch::Response::Track(stream) => {
-                self.try_do(|this| Ok(this
-                    .core
-                    .next
-                    .set(Audio::new(Stream::new(stream?)?))
-                ));
+                self.try_do(|this| Ok(this.core.next.set(Audio::new(Stream::new(stream?)?))));
             }
         }
     }
-    
+
     fn try_set_explore<T, E, F>(&mut self, result: Result<T, E>, map: F) -> bool
-    where 
+    where
         E: Error + 'static,
-        F: FnOnce(T) -> ExploreState
+        F: FnOnce(T) -> ExploreState,
     {
         match result {
             Ok(val) => {
                 self.navigation.explore = map(val);
                 true
-            },
+            }
             Err(e) => {
                 self.error.replace(e.into());
                 self.navigation.explore = ExploreState::blank();
@@ -330,9 +324,7 @@ impl State {
     const VOL_STEP: f32 = 0.05;
 
     fn update_volume(&mut self, by: f32) {
-        let new = (self.core.player.volume() + by)
-            .min(1.)
-            .max(0.);
+        let new = (self.core.player.volume() + by).min(1.).max(0.);
 
         self.core.player.set_volume(new)
     }
@@ -353,32 +345,23 @@ impl State {
     }
 
     fn try_play(&mut self, audio: Audio) {
-        self.try_do(|this| this
-            .core
-            .player
-            .play(audio)
-            .map_err(<_>::into)
-        );
+        self.try_do(|this| this.core.player.play(audio).map_err(<_>::into));
     }
 
     pub fn update_device(&mut self) {
-        self.try_do(|this| this
-            .core
-            .player
-            .update_device()
-            .map_err(<_>::into)
-        );
+        self.try_do(|this| this.core.player.update_device().map_err(<_>::into));
     }
 
     const SEEK: Duration = Duration::from_secs(5);
 
     fn seek(&mut self, op: impl Fn(Duration, Duration) -> Duration) {
-        let new = op(self.core.player.elapsed(), Self::SEEK)
-            .min(self.core.queue
+        let new = op(self.core.player.elapsed(), Self::SEEK).min(
+            self.core
+                .queue
                 .current()
                 .map(|track| track.duration)
-                .unwrap_or_default()
-            );
+                .unwrap_or_default(),
+        );
 
         self.try_do(|this| this.core.player.seek(new).map_err(<_>::into));
     }
@@ -388,7 +371,7 @@ impl State {
             MediaKey::Stop => self.stop(),
             MediaKey::PlayPause => self.toggle_play(),
             MediaKey::NextTrack => self.step_track(Queue::advance),
-            MediaKey::PrevTrack => self.step_track(Queue::regress)
+            MediaKey::PrevTrack => self.step_track(Queue::regress),
         }
     }
 
@@ -424,9 +407,9 @@ impl State {
     pub fn into_config(self) -> StateConfig {
         StateConfig {
             general: cfg::General {
-                volume: self.core.player.volume()
+                volume: self.core.player.volume(),
             },
-            bindings: self.core.bindings.into()
+            bindings: self.core.bindings.into(),
         }
     }
 }
@@ -436,10 +419,7 @@ fn saturating_sub(a: Duration, b: Duration) -> Duration {
 }
 
 fn can_select_down(selected: Option<usize>, len: usize) -> bool {
-    selected
-        .map(|sel| sel + 1)
-        .unwrap_or_default()
-        < len
+    selected.map(|sel| sel + 1).unwrap_or_default() < len
 }
 
 fn can_select_up(selected: Option<usize>) -> bool {

@@ -1,20 +1,14 @@
 mod pool;
 
 use {
-    pool::ThreadPool,
-    std::sync::mpsc,
-    bc_track::TrackStream,
     bandcamp_api::{
+        data::{fans::Fan, outlets::Outlet, releases::Release, search::Search, Query},
         Api,
         Result,
-        data::{
-            Query,
-            fans::Fan,
-            search::Search,
-            outlets::Outlet,
-            releases::Release
-        }
-    }
+    },
+    bc_track::TrackStream,
+    pool::ThreadPool,
+    std::sync::mpsc,
 };
 
 pub enum Response {
@@ -22,7 +16,7 @@ pub enum Response {
     Search(Result<Search>),
     Outlet(Result<Outlet>),
     Release(Result<Release>),
-    Track(Result<Box<bc_track::TrackStream>>)
+    Track(Result<Box<bc_track::TrackStream>>),
 }
 
 macro_rules! from {
@@ -53,14 +47,14 @@ impl Fetcher {
         let fetcher = Fetcher {
             api,
             pool: ThreadPool::new(),
-            sender
+            sender,
         };
 
         (fetcher, receiver)
     }
 
     pub fn query<T, A>(&self, args: &A)
-    where 
+    where
         T: Query<A> + Send + 'static,
         Result<T>: Into<Response>,
         A: ?Sized,

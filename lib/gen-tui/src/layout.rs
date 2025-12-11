@@ -11,7 +11,7 @@ pub trait RectExt: Sized + Copy {
             .shrink_top(margin.top)
             .shrink_bottom(margin.bottom)
     }
-    
+
     fn grow_left(self, amount: u16) -> Self;
     fn grow_right(self, amount: u16) -> Self;
     fn grow_top(self, amount: u16) -> Self;
@@ -109,7 +109,7 @@ impl RectExt for tui::layout::Rect {
 
         Self { y, height, ..self }
     }
-    
+
     #[inline]
     fn grow_bottom(self, amount: u16) -> Self {
         Self {
@@ -154,25 +154,16 @@ impl RectExt for tui::layout::Rect {
 
     #[inline]
     fn contains(self, x: u16, y: u16) -> bool {
-        x >= self.left()
-            && x < self.right()
-            && y >= self.top()
-            && y < self.bottom()
+        x >= self.left() && x < self.right() && y >= self.top() && y < self.bottom()
     }
 }
 
 fn shrink_adjust(coord: u16, size: u16, amount: u16) -> (u16, u16) {
-    (
-        coord.saturating_add(amount),
-        size.saturating_sub(amount)
-    )
+    (coord.saturating_add(amount), size.saturating_sub(amount))
 }
 
 fn grow_adjust(coord: u16, size: u16, amount: u16) -> (u16, u16) {
-    (
-        coord.saturating_sub(amount),
-        size.saturating_add(amount)
-    )
+    (coord.saturating_sub(amount), size.saturating_add(amount))
 }
 
 #[derive(Default, Copy, Clone, PartialEq, Eq)]
@@ -180,7 +171,7 @@ pub struct Margin {
     pub left: u16,
     pub right: u16,
     pub top: u16,
-    pub bottom: u16
+    pub bottom: u16,
 }
 
 macro_rules! dirs {
@@ -201,7 +192,7 @@ impl Margin {
             left: amount,
             right: amount,
             top: amount,
-            bottom: amount
+            bottom: amount,
         }
     }
 

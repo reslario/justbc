@@ -1,37 +1,30 @@
 use {
     crate::symbols,
-    std::borrow::Cow,
+    bandcamp_api::data::{outlets::*, releases::ReleaseKind},
     builder::builder_methods,
-    gen_tui::{
-        widgets,
-        style::StyleExt,
-        layout::RectExt
-    },
-    bandcamp_api::data::{
-        outlets::*,
-        releases::ReleaseKind
-    },
+    gen_tui::{layout::RectExt, style::StyleExt, widgets},
+    std::borrow::Cow,
     tui::{
-        text::Span,
-        style::Style,
-        layout::Rect,
         buffer::Buffer,
-        widgets::{StatefulWidget, List, ListItem, ListState, Wrap}
-    }
+        layout::Rect,
+        style::Style,
+        text::Span,
+        widgets::{List, ListItem, ListState, StatefulWidget, Wrap},
+    },
 };
 
 pub struct OutletView<'a> {
     outlet: &'a Outlet,
     style: Style,
-    highlight_style: Style
+    highlight_style: Style,
 }
 
-impl <'a> OutletView<'a> {
+impl<'a> OutletView<'a> {
     pub fn new(outlet: &'a Outlet) -> OutletView<'a> {
         OutletView {
             outlet,
             style: <_>::default(),
-            highlight_style: <_>::default()
+            highlight_style: <_>::default(),
         }
     }
 
@@ -45,49 +38,47 @@ impl <'a> OutletView<'a> {
 
         let symbol = match info.kind {
             OutletKind::Label => symbols::LABEL,
-            OutletKind::Artist => symbols::ARTIST
+            OutletKind::Artist => symbols::ARTIST,
         };
 
         let bold = |s| Span::styled(s, Style::default().bold()).into();
 
         let title = format!("{} {}", symbol, info.name);
 
-        let mut text = vec![
-            bold(title.as_str()),
-        ];
+        let mut text = vec![bold(title.as_str())];
 
         if let Some(bio) = info.bio.as_ref() {
             text.push(" ".into());
             text.push(bold("About"));
 
-            text.extend(bio
-                .split('\n')
-                .filter(|s| !s.is_empty())
-                .map(<_>::into)
-            );
+            text.extend(bio.split('\n').filter(|s| !s.is_empty()).map(<_>::into));
         }
 
         let height = widgets::draw_paragraph(
             text,
             |p| p.style(self.style).wrap(Wrap { trim: true }),
             area,
-            buf
+            buf,
         );
 
-        area.shrink_top(height)
-            .shrink_top(1)
+        area.shrink_top(height).shrink_top(1)
     }
 
     fn draw_releases(&self, area: Rect, buf: &mut Buffer, state: &mut OutletViewState) {
         let releases = &self.outlet.discography;
 
-        if releases.is_empty() { return }
+        if releases.is_empty() {
+            return
+        }
 
-        buf.set_span(area.x, area.y, &Span::styled("Releases", self.style.bold()), area.width);
+        buf.set_span(
+            area.x,
+            area.y,
+            &Span::styled("Releases", self.style.bold()),
+            area.width,
+        );
 
-        let draw = area
-            .shrink_top(1)
-            .shrink_left(2);
+        let draw = area.shrink_top(1).shrink_left(2);
 
         let items = releases
             .iter()
@@ -106,7 +97,7 @@ impl <'a> OutletView<'a> {
 fn fmt_release(release: &Release) -> String {
     let icon = match release.kind {
         ReleaseKind::Track => symbols::TRACK,
-        ReleaseKind::Album => symbols::ALBUM
+        ReleaseKind::Album => symbols::ALBUM,
     };
 
     format!("{} {}", icon, fmt_release_info(&release))
@@ -122,7 +113,7 @@ fn fmt_release_info(info: &Release) -> Cow<str> {
 
 pub type OutletViewState = ListState;
 
-impl <'a> StatefulWidget for OutletView<'a> {
+impl<'a> StatefulWidget for OutletView<'a> {
     type State = OutletViewState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {

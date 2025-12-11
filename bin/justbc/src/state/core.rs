@@ -1,17 +1,17 @@
 use {
-    play::Player,
-    fetch::Fetcher,
-    std::cell::Cell,
     crate::play::Queue,
+    bandcamp_api::data::releases::{Release, Track},
+    fetch::Fetcher,
     input::binds::Bindings,
-    bandcamp_api::data::releases::{Release, Track}
+    play::Player,
+    std::cell::Cell,
 };
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Focus {
     Release,
     Search,
-    NavBody
+    NavBody,
 }
 
 impl Default for Focus {
@@ -26,13 +26,12 @@ pub type Audio = mp3::Mp3<Stream>;
 #[derive(Default)]
 pub struct Next {
     track: Option<Audio>,
-    pending: Cell<bool>
+    pending: Cell<bool>,
 }
 
 impl Next {
     fn needed(&self) -> bool {
-        !self.pending.get()
-            && self.track.is_none()
+        !self.pending.get() && self.track.is_none()
     }
 
     pub fn set(&mut self, track: Audio) {
@@ -46,12 +45,10 @@ impl Next {
     }
 
     pub fn take(&mut self) -> Option<Audio> {
-        self.track
-            .take()
-            .map(|track| {
-                self.pending.set(false);
-                track
-            })
+        self.track.take().map(|track| {
+            self.pending.set(false);
+            track
+        })
     }
 }
 

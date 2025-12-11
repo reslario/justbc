@@ -1,17 +1,14 @@
-mod recover;
 mod handle;
-mod track;
+mod recover;
 mod tick;
+mod track;
 
 use {
-    track::Track,
     handle::Handle,
-    rodio::{Source, Sample},
-    snafu::{Snafu, ResultExt},
-    std::{
-        fmt,
-        time::Duration,
-    }
+    rodio::{Sample, Source},
+    snafu::{ResultExt, Snafu},
+    std::{fmt, time::Duration},
+    track::Track,
 };
 
 #[derive(Debug, Snafu)]
@@ -19,7 +16,7 @@ pub enum Error {
     #[snafu(context(false), display("Error playing sound: {}", source))]
     Play { source: PlayError },
     #[snafu(context(false), display("Error opening output stream: {}", source))]
-    Stream { source: StreamError }
+    Stream { source: StreamError },
 }
 
 pub use rodio::{PlayError, StreamError};
@@ -32,23 +29,23 @@ pub use rodio::{PlayError, StreamError};
 pub struct Player<S> {
     handle: Option<Handle>,
     current: Option<Track<S>>,
-    volume: f32
+    volume: f32,
 }
 
-impl <S> Default for Player<S> {
+impl<S> Default for Player<S> {
     fn default() -> Self {
         Player {
             handle: None,
             current: None,
-            volume: 1.
+            volume: 1.,
         }
     }
-} 
+}
 
-impl <S> Player<S> 
-where 
+impl<S> Player<S>
+where
     S: Source + Iterator + Send + 'static,
-    S::Item: Sample + Send
+    S::Item: Sample + Send,
 {
     /// Creates a new `Player`.
     pub fn new() -> Player<S> {
@@ -62,14 +59,12 @@ where
 
         Ok(())
     }
-    
+
     fn set_source(&mut self, source: S) -> Result<(), Error> {
-        let sink = self
-            .init_handle()?
-            .new_sink()?;
+        let sink = self.init_handle()?.new_sink()?;
 
         sink.set_volume(self.volume);
-        
+
         self.current.replace(Track::new(sink, source));
 
         Ok(())
@@ -79,7 +74,7 @@ where
         if self.handle.is_none() {
             self.handle = Handle::new()?.into();
         }
-        
+
         Ok(self.handle.as_mut().unwrap())
     }
 
@@ -106,8 +101,7 @@ where
     /// Returns whether the player is paused.
     /// Returns `false` if the player is empty.
     pub fn is_paused(&self) -> bool {
-        self.ref_track(Track::is_paused)
-            .unwrap_or_default()
+        self.ref_track(Track::is_paused).unwrap_or_default()
     }
 
     /// Resumes playback of a paused sound, if there is one.
@@ -118,22 +112,19 @@ where
     /// Returns how long the current sound has been playing,
     /// or an empty duration if there is none.
     pub fn elapsed(&self) -> Duration {
-        self.ref_track(Track::elapsed)
-            .unwrap_or_default()
+        self.ref_track(Track::elapsed).unwrap_or_default()
     }
 
     /// Attempts to resume playback on a new default output device,
     /// if it has changed.
     pub fn update_device(&mut self) -> Result<(), UpdateDeviceError> {
-        let handle = Handle::new()
-            .map_err(Error::from)?;
+        let handle = Handle::new().map_err(Error::from)?;
 
         if let Some(track) = self.current.as_mut() {
-            let sink = handle
-                .new_sink()
-                .map_err(Error::from)?;
+            let sink = handle.new_sink().map_err(Error::from)?;
 
-            track.set_sink(sink)
+            track
+                .set_sink(sink)
                 .map_err(|_| UpdateDeviceError::Resume)?
         }
 
@@ -170,20 +161,16 @@ where
 
     /// Seeks to the specified duration in the current track, if one exists.
     pub fn seek(&mut self, duration: Duration) -> Result<(), SeekError<S::Error>>
-    where 
+    where
         S: seek::SeekableSource,
-        S::Error: fmt::Display + snafu::Error
+        S::Error: fmt::Display + snafu::Error,
     {
         let paused = self.is_paused();
 
         if let Some(track) = self.current.take() {
-            let mut source = track
-                .into_source()
-                .map_err(|_| SeekError::ResumePlayback)?;
+            let mut source = track.into_source().map_err(|_| SeekError::ResumePlayback)?;
 
-            let elapsed = source
-                .seek(duration)
-                .context(Seek)?;
+            let elapsed = source.seek(duration).context(Seek)?;
 
             if paused {
                 self.set_source(source)
@@ -211,7 +198,7 @@ pub enum SeekError<E: fmt::Display + snafu::Error + 'static> {
     General { source: Error },
     /// Resuming playback was not possible.
     #[snafu(display("{}", FAILED_RESUME))]
-    ResumePlayback
+    ResumePlayback,
 }
 
 /// Errors that can occur when updating the device.
@@ -222,5 +209,5 @@ pub enum UpdateDeviceError {
     General { source: Error },
     /// Resuming playback was not possible.
     #[snafu(display("{}", FAILED_RESUME))]
-    Resume
+    Resume,
 }

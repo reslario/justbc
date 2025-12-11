@@ -1,16 +1,13 @@
 use {
+    crate::{keys::Key, Command},
     indexmap::IndexMap,
-    serde::{Serialize, Deserialize},
-    crate::{
-        Command,
-        keys::Key,
-    }
+    serde::{Deserialize, Serialize},
 };
 
 #[derive(Serialize, Deserialize)]
 pub struct Bindings {
     #[serde(flatten)]
-    map: IndexMap<Key, Command>
+    map: IndexMap<Key, Command>,
 }
 
 impl Bindings {
@@ -20,9 +17,7 @@ impl Bindings {
 
     pub fn patch_default(&mut self) {
         for (key, cmd) in DEFAULT_BINDS {
-            self.map
-                .entry(*key)
-                .or_insert(*cmd);
+            self.map.entry(*key).or_insert(*cmd);
         }
     }
 
@@ -34,84 +29,135 @@ impl Bindings {
 
 const DEFAULT_BINDS: &[(Key, Command)] = {
     use {
+        crossterm::event::{KeyCode::*, KeyModifiers as M},
         Command::*,
-        crossterm::event::{
-            KeyCode::*,
-            KeyModifiers as M
-        }
     };
 
     &[
         (
-            Key { code: Char('r'), modifiers: M::NONE },
-            FocusRelease
+            Key {
+                code: Char('r'),
+                modifiers: M::NONE,
+            },
+            FocusRelease,
         ),
         (
-            Key { code: Char('n'), modifiers: M::NONE },
-            FocusNav
+            Key {
+                code: Char('n'),
+                modifiers: M::NONE,
+            },
+            FocusNav,
         ),
         (
-            Key { code: Char('s'), modifiers: M::NONE },
-            FocusSearchBar
+            Key {
+                code: Char('s'),
+                modifiers: M::NONE,
+            },
+            FocusSearchBar,
         ),
         (
-            Key { code: Char('l'), modifiers: M::NONE },
-            TabLibrary
+            Key {
+                code: Char('l'),
+                modifiers: M::NONE,
+            },
+            TabLibrary,
         ),
         (
-            Key { code: Char('e'), modifiers: M::NONE },
-            TabExplore
+            Key {
+                code: Char('e'),
+                modifiers: M::NONE,
+            },
+            TabExplore,
         ),
         (
-            Key { code: Tab, modifiers: M::NONE },
-            CycleTabs
+            Key {
+                code: Tab,
+                modifiers: M::NONE,
+            },
+            CycleTabs,
         ),
         (
-            Key { code: Up, modifiers: M::NONE },
-            SelectionUp
+            Key {
+                code: Up,
+                modifiers: M::NONE,
+            },
+            SelectionUp,
         ),
         (
-            Key { code: Down, modifiers: M::NONE },
-            SelectionDown
+            Key {
+                code: Down,
+                modifiers: M::NONE,
+            },
+            SelectionDown,
         ),
         (
-            Key { code: Up, modifiers: M::SHIFT },
-            ScrollUp
+            Key {
+                code: Up,
+                modifiers: M::SHIFT,
+            },
+            ScrollUp,
         ),
         (
-            Key { code: Down, modifiers: M::SHIFT },
-            ScrollDown
+            Key {
+                code: Down,
+                modifiers: M::SHIFT,
+            },
+            ScrollDown,
         ),
         (
-            Key { code: Enter, modifiers: M::NONE },
-            Confirm
+            Key {
+                code: Enter,
+                modifiers: M::NONE,
+            },
+            Confirm,
         ),
         (
-            Key { code: Char('+'), modifiers: M::NONE },
-            VolumeUp
+            Key {
+                code: Char('+'),
+                modifiers: M::NONE,
+            },
+            VolumeUp,
         ),
         (
-            Key { code: Char('-'), modifiers: M::NONE },
-            VolumeDown
+            Key {
+                code: Char('-'),
+                modifiers: M::NONE,
+            },
+            VolumeDown,
         ),
         (
-            Key { code: Char(' '), modifiers: M::NONE },
-            TogglePlay
+            Key {
+                code: Char(' '),
+                modifiers: M::NONE,
+            },
+            TogglePlay,
         ),
         (
-            Key { code: Right, modifiers: M::CONTROL },
-            NextTrack
+            Key {
+                code: Right,
+                modifiers: M::CONTROL,
+            },
+            NextTrack,
         ),
         (
-            Key { code: Left, modifiers: M::CONTROL },
-            PrevTrack
+            Key {
+                code: Left,
+                modifiers: M::CONTROL,
+            },
+            PrevTrack,
         ),
         (
-            Key { code: Right, modifiers: M::NONE },
+            Key {
+                code: Right,
+                modifiers: M::NONE,
+            },
             SkipAhead,
         ),
         (
-            Key { code: Left, modifiers: M::NONE },
+            Key {
+                code: Left,
+                modifiers: M::NONE,
+            },
             SkipBack,
         ),
     ]
@@ -119,10 +165,7 @@ const DEFAULT_BINDS: &[(Key, Command)] = {
 
 impl Default for Bindings {
     fn default() -> Self {
-        let map = DEFAULT_BINDS
-            .iter()
-            .copied()
-            .collect();
+        let map = DEFAULT_BINDS.iter().copied().collect();
 
         Bindings { map }
     }

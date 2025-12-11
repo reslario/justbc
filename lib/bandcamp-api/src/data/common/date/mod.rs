@@ -1,43 +1,41 @@
 #[cfg(feature = "query")]
 pub mod parse;
 
-use std::{
-    fmt,
-    num::NonZeroU8
-};
+use std::{fmt, num::NonZeroU8};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Date {
     pub day: NonZeroU8,
     pub month: Month,
-    pub year: u16
+    pub year: u16,
 }
 
 impl Date {
     pub fn fmt_short(self) -> impl fmt::Display {
         FmtDate {
             date: self,
-            month_str: Month::short
+            month_str: Month::short,
         }
     }
 
     pub fn fmt_long(self) -> impl fmt::Display {
         FmtDate {
             date: self,
-            month_str: Month::long
+            month_str: Month::long,
         }
     }
 }
 
 struct FmtDate {
     date: Date,
-    month_str: fn(Month) -> &'static str
+    month_str: fn(Month) -> &'static str,
 }
 
 impl fmt::Display for FmtDate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
-            f, "{} {} {}",
+            f,
+            "{} {} {}",
             self.date.day,
             (self.month_str)(self.date.month),
             self.date.year
@@ -58,7 +56,7 @@ pub enum Month {
     September,
     October,
     November,
-    December
+    December,
 }
 
 impl Month {
@@ -77,7 +75,7 @@ impl Month {
         Month::September,
         Month::October,
         Month::November,
-        Month::December
+        Month::December,
     ];
 
     #[cfg(feature = "query")]
@@ -99,17 +97,7 @@ impl Month {
         use Month::*;
 
         long!(
-            January,
-            February,
-            March,
-            April,
-            May,
-            June,
-            July,
-            August,
-            September,
-            October,
-            November,
+            January, February, March, April, May, June, July, August, September, October, November,
             December
         )
     }

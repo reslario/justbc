@@ -1,11 +1,10 @@
-
 use {
     super::Synced,
     std::{
-        thread,
+        io::{self, Read},
         sync::mpsc,
-        io::{self, Read}
-    }
+        thread,
+    },
 };
 
 type FetchResult = io::Result<FetchResponse>;
@@ -14,19 +13,23 @@ type FetchResult = io::Result<FetchResponse>;
 /// to fetch new data from an audio source in a
 /// non-blocking fashion.
 pub struct FetchThread<R>
-where R: Read + Send + Sync + 'static {
+where
+    R: Read + Send + Sync + 'static,
+{
     receiver: mpsc::Receiver<FetchResult>,
     sender: mpsc::Sender<Message<R>>,
-    pending: bool
+    pending: bool,
 }
 
 enum Message<R> {
     Fetch(Synced<R>, usize),
-    End
+    End,
 }
 
-impl <R> FetchThread<R>
-where R: Read + Send + Sync + 'static {
+impl<R> FetchThread<R>
+where
+    R: Read + Send + Sync + 'static,
+{
     pub fn new() -> io::Result<FetchThread<R>> {
         let (res_sender, receiver) = mpsc::sync_channel(0);
         let (sender, msg_receiver) = mpsc::channel();
@@ -38,20 +41,20 @@ where R: Read + Send + Sync + 'static {
         Ok(FetchThread {
             receiver,
             sender,
-            pending: false
+            pending: false,
         })
     }
 
     fn recv<F, E>(&mut self, f: F) -> Option<FetchResult>
-    where F: Fn(&mpsc::Receiver<FetchResult>) -> Result<FetchResult, E> {
+    where
+        F: Fn(&mpsc::Receiver<FetchResult>) -> Result<FetchResult, E>,
+    {
         if self.pending {
-            f(&self.receiver)
-                .ok()
-                .map(|res| {
-                    self.pending = false;
-                    res
-                })
-        } else { 
+            f(&self.receiver).ok().map(|res| {
+                self.pending = false;
+                res
+            })
+        } else {
             None
         }
     }
@@ -72,32 +75,34 @@ where R: Read + Send + Sync + 'static {
     }
 
     fn send(&self, msg: Message<R>) {
-        self.sender
-            .send(msg)
-            .unwrap();
+        self.sender.send(msg).unwrap();
     }
 }
 
-impl <R> Drop for FetchThread<R>
-where R: Read + Send + Sync + 'static {
+impl<R> Drop for FetchThread<R>
+where
+    R: Read + Send + Sync + 'static,
+{
     fn drop(&mut self) {
         self.send(Message::End)
     }
 }
 
 pub struct FetchResponse {
-    pub bytes: Vec<u8>
+    pub bytes: Vec<u8>,
 }
 
 fn fetch_thread<R>(
     sender: mpsc::SyncSender<FetchResult>,
-    receiver: mpsc::Receiver<Message<R>>
+    receiver: mpsc::Receiver<Message<R>>,
 ) -> impl FnOnce()
-where R: Read + 'static {
+where
+    R: Read + 'static,
+{
     move || loop {
         let res = match receiver.recv().unwrap() {
             Message::Fetch(resp, bytes) => fetch(resp, bytes),
-            Message::End => return
+            Message::End => return,
         };
 
         sender.send(res).ok();
@@ -112,7 +117,5 @@ fn fetch(reader: Synced<impl Read>, bytes: usize) -> FetchResult {
 
     buf.truncate(read);
 
-    Ok(FetchResponse {
-        bytes: buf
-    })
+    Ok(FetchResponse { bytes: buf })
 }

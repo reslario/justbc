@@ -9,7 +9,7 @@ pub enum MediaKey {
     PlayPause,
     Stop,
     NextTrack,
-    PrevTrack
+    PrevTrack,
 }
 
 #[cfg(windows)]
@@ -28,8 +28,7 @@ pub struct Listener(Inner);
 
 impl Listener {
     pub fn new() -> Result<Listener, Error> {
-        Inner::new()
-            .map(Listener)
+        Inner::new().map(Listener)
     }
 
     pub fn keys(&self) -> impl Iterator<Item = MediaKey> + '_ {

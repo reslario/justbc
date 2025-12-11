@@ -1,15 +1,11 @@
 use {
-    crate::state::{
-        Core,
-        WidgetState,
-        explore::ExploreState
-    },
+    crate::state::{explore::ExploreState, Core, WidgetState},
     bandcamp_api::data::{
-        outlets::Outlet,
-        search::SearchResult,
         fans::{Fan, FanArgs},
-        releases::{Release, ReleaseArgs ,ReleaseKind}
-    }
+        outlets::Outlet,
+        releases::{Release, ReleaseArgs, ReleaseKind},
+        search::SearchResult,
+    },
 };
 
 impl super::Explore for super::Search {
@@ -20,41 +16,39 @@ impl super::Explore for super::Search {
     }
 
     fn confirm(&self, core: &mut Core, widgets: &mut WidgetState) -> Option<ExploreState> {
-        widgets.nav
-            .selected()
-            .map(|idx| {
-                match &self.results[idx] {
-                    SearchResult::Outlet(o) => core.fetcher.query::<Outlet, _>(&o.id),
-                    SearchResult::Album(a) => {
-                        let args = ReleaseArgs {
-                            id: a.id,
-                            kind: ReleaseKind::Album,
-                            outlet: a.artist_id,
-                        };
+        widgets.nav.selected().map(|idx| {
+            match &self.results[idx] {
+                SearchResult::Outlet(o) => core.fetcher.query::<Outlet, _>(&o.id),
+                SearchResult::Album(a) => {
+                    let args = ReleaseArgs {
+                        id: a.id,
+                        kind: ReleaseKind::Album,
+                        outlet: a.artist_id,
+                    };
 
-                        core.fetcher.query::<Release, _>(&args)
-                    },
-                    SearchResult::Track(t) => {
-                        let args = ReleaseArgs {
-                            id: t.id,
-                            kind: ReleaseKind::Track,
-                            outlet: t.artist_id,
-                        };
+                    core.fetcher.query::<Release, _>(&args)
+                }
+                SearchResult::Track(t) => {
+                    let args = ReleaseArgs {
+                        id: t.id,
+                        kind: ReleaseKind::Track,
+                        outlet: t.artist_id,
+                    };
 
-                        core.fetcher.query::<Release, _>(&args)
-                    },
-                    SearchResult::Fan(f) => {
-                        let args = FanArgs {
-                            id: f.id,
-                            start: 0,
-                            count: FanArgs::DEFAULT_COUNT,
-                        };
+                    core.fetcher.query::<Release, _>(&args)
+                }
+                SearchResult::Fan(f) => {
+                    let args = FanArgs {
+                        id: f.id,
+                        start: 0,
+                        count: FanArgs::DEFAULT_COUNT,
+                    };
 
-                        core.fetcher.query::<Fan, _>(&args)
-                    }
-                };
+                    core.fetcher.query::<Fan, _>(&args)
+                }
+            };
 
-                ExploreState::loading()
-            })
+            ExploreState::loading()
+        })
     }
 }
