@@ -50,8 +50,7 @@ impl ApiUrl<WithVersion> {
         self.url
             .path_segments_mut()
             .unwrap()
-            .push(function.as_ref())
-            .push("1");
+            .push(function.as_ref());
 
         ApiUrl {
             url: self.url,
